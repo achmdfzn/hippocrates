@@ -1,0 +1,90 @@
+{
+  "name": "hippocrates",
+  "version": "0.1.0",
+  "description": "🩺 Next.js security middleware — silent honeypot that destroys autonomous AI agents, LLM scrapers, and bots using Redis-backed stateful defense. No 403s, no 429s — just convincing fake data that wastes attacker compute.",
+  "keywords": [
+    "nextjs",
+    "security",
+    "middleware",
+    "honeypot",
+    "rate-limiting",
+    "zero-trust",
+    "ai-agent-detection",
+    "llm-security",
+    "app-router",
+    "redis",
+    "zod",
+    "shadow-ban",
+    "api-security",
+    "bot-detection",
+    "edge-computing",
+    "vercel",
+    "prompt-injection",
+    "api-protection",
+    "threat-detection",
+    "scraper-blocker",
+    "headless-browser",
+    "ddos-protection",
+    "security-middleware",
+    "nextjs-middleware",
+    "stateful-defense"
+  ],
+  "author": "achmdfzn (https://github.com/achmdfzn)",
+  "license": "MIT",
+  "homepage": "https://github.com/achmdfzn/hippocrates#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/achmdfzn/hippocrates.git"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/achmdfzn"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "zod": ">=3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
+    "@upstash/redis": "^1.28.0",
+    "eslint": "^10.4.1",
+    "next": "^15.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "zod": "^3.22.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false
+}
