@@ -22,17 +22,28 @@ of the real handler. The attacker always receives a `200 OK` — never a `403` o
 ```
 hippocrates/
 ├── src/
-│   ├── index.ts          # Main library (1026 lines, single entry point)
+│   ├── index.ts                    # Entry point + HOF (221 lines, re-exports all modules)
+│   ├── engine/
+│   │   ├── types.ts                # Type definitions (279 lines)
+│   │   ├── constants.ts            # Defaults, UA patterns, obfuscation patterns (199 lines)
+│   │   ├── analyzers.ts            # Individual layer analyzers (97 lines)
+│   │   └── threat-score-engine.ts  # ThreatScoreEngine class (306 lines)
+│   ├── system/
+│   │   ├── honeypot.ts             # Decoy, honeypot, stats, Redis degradation (152 lines)
+│   │   ├── pipeline.ts             # Pipeline orchestration (327 lines)
+│   │   └── validator.ts            # Zod validatePayload + ensureStrict (174 lines)
 │   ├── utils/
-│   │   └── ip.ts         # IPv6 normalization utility
+│   │   └── ip.ts                   # IPv6 normalization (90 lines)
 │   └── __tests__/
-│       ├── helpers.ts                    # Test mocks (Redis, NextRequest, NextResponse)
-│       ├── ip.test.ts                    # 29 tests (IPv6 normalization)
-│       ├── threat-score-engine.test.ts   # 35 tests
-│       ├── validate-payload.test.ts      # 7 tests
-│       ├── decoy.test.ts                 # 9 tests
-│       ├── with-hippocrates.test.ts      # 21 tests
-│       └── ensure-strict.test.ts         # 14 tests (recursive .strict())
+│       ├── helpers.ts                          # Test mocks (Redis, NextRequest, NextResponse)
+│       ├── ip.test.ts                          # 29 tests (IPv6 normalization)
+│       ├── threat-score-engine.test.ts          # 35 tests
+│       ├── validate-payload.test.ts             # 7 tests
+│       ├── decoy.test.ts                       # 9 tests
+│       ├── with-hippocrates.test.ts             # 30 tests
+│       ├── ensure-strict.test.ts                # 22 tests (recursive .strict())
+│       ├── redis-degradation.test.ts            # 6 tests (Redis fallback/circuit breaker)
+│       └── stats.test.ts                       # 5 tests (request statistics)
 ├── example/
 │   └── app/api/data/route.ts  # Reference implementation
 ├── .github/workflows/ci.yml   # GitHub Actions (lint → typecheck → test → build)
@@ -48,12 +59,12 @@ hippocrates/
 └── .gitignore
 ```
 
-The library is intentionally single-file (`src/index.ts`). Do not split into multiple
-files until the codebase exceeds ~1200 lines — consumers benefit from a single module
-with no internal import graph to trace.
-
-The `src/utils/ip.ts` module is the single exception — an explicitly planned utility
-for IPv6 normalization that keeps the main file clean.
+The library is modular but designed so that consumers import everything from a single
+entry point (`hippocrates` / `src/index.ts`). No internal imports needed at the
+consumer level. Modules are separated by concern:
+- **`engine/`** — type definitions, constants, per-layer analyzers, and the scoring engine
+- **`system/`** — pipeline orchestration, honeypot/decoys, validation, stats, and Redis degradation
+- **`utils/`** — IPv6 normalization utility
 
 ---
 
@@ -93,21 +104,21 @@ a fresh function call, but threat memory persists across requests via Redis.
 
 ---
 
-## src/index.ts Section Map
+## Module Map
 
-The file is divided into 8 clearly marked sections (`§`). When editing, find
-the right section first — don't scatter logic across sections.
+The codebase is organized into 3 module groups under `src/`. Each module has a
+single responsibility and is independently testable.
 
-| Section | Content | Lines | Key Exports |
-|---------|---------|-------|-------------|
-| § 1 | Type definitions (`RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`) | 31–139 | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AppRouteHandler`, `ValidationResult` |
-| § 2 | Constants: `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS` (42 entries), `OBFUSCATION_PATTERNS` (5), `HEADER_ANOMALY_PATTERNS` (4) | 140–301 | All const values, regex patterns, header anomaly checks |
-| § 3 | `ThreatScoreEngine` class (all Redis + behavioral analysis) | 302–510 | `getScore()`, `addScore()`, `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `detectObfuscation()`, `analyzeHeaders()` |
-| § 4 | `generateDecoyResponse()` (4 rotating fake response templates) | 511–621 | `generateDecoyResponse()` |
-| § 5 | `serveHoneypot()` (assembles and returns the fake 200 OK) | 623–669 | `serveHoneypot()` |
-| § 6 | `validatePayload<T>()` + `ensureStrict<T>()` (Zod wrapper with vague errors + recursive .strict()) | 671–802 | `validatePayload<T>()`, `ensureStrict<T>()` |
-| § 7 | `withHippocrates()` (the HOF — orchestrates all layers) | 804–1017 | `withHippocrates()` — primary export |
-| § 8 | Public re-exports (`z`, `ZodSchema` type) | 1019–1026 | `z`, `ZodSchema` type |
+| Module | File | Responsibility |
+|--------|------|----------------|
+| Types | `src/engine/types.ts` | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AppRouteHandler`, `ValidationResult` |
+| Constants | `src/engine/constants.ts` | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS` (35+ entries), `OBFUSCATION_PATTERNS` (5), `HEADER_ANOMALY_PATTERNS` (4) |
+| Analyzers | `src/engine/analyzers.ts` | `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `detectObfuscation()`, `analyzeHeaders()` — pure functions, no Redis |
+| Engine | `src/engine/threat-score-engine.ts` | `ThreatScoreEngine` class — `getScore()`, `addScore()`, orchestrates analyzers with Redis |
+| Honeypot | `src/system/honeypot.ts` | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, `getStats()`, `resetStats()`, Redis degradation handling |
+| Pipeline | `src/system/pipeline.ts` | Pipeline orchestration — runs L0–L6 analyzers, builds `cleanReq`, manages `requestId` |
+| Validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` — Zod wrapper with vague errors + recursive `.strict()` |
+| Index | `src/index.ts` | Public API entry point — `withHippocrates()` HOF, `ensureStrict()`, `validatePayload()`, re-exports |
 
 ---
 
@@ -118,7 +129,7 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config v10 (eslint.config.mjs)
-npm test               # Vitest — 115 tests across 6 files
+npm test               # Vitest — 143 tests across 8 files
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
 ```
@@ -221,8 +232,8 @@ have `Buffer`. Use `btoa()` for base64 encoding instead.
 
 ### Adding a new User-Agent pattern (most common task)
 
-Edit `AGENT_UA_PATTERNS` in § 2. Always use `ReadonlyArray<RegExp>`.
-Add a comment explaining what the pattern targets.
+Edit `AGENT_UA_PATTERNS` in `src/engine/constants.ts`. Always use
+`ReadonlyArray<RegExp>`. Add a comment explaining what the pattern targets.
 
 ```typescript
 // In AGENT_UA_PATTERNS array:
@@ -232,11 +243,12 @@ Add a comment explaining what the pattern targets.
 Prefer specific version-aware patterns (`/framework\/[\d.]+/i`) over
 broad keyword matches (`/framework/i`) to reduce false positives.
 
-The array currently has 35 entries (see AGENTS.md for complete list).
+The array currently has 35+ entries (see AGENTS.md for complete list).
 
 ### Adding a new obfuscation pattern
 
-Edit `OBFUSCATION_PATTERNS` in § 2. Each entry needs `name` and `pattern`.
+Edit `OBFUSCATION_PATTERNS` in `src/engine/constants.ts`. Each entry needs
+`name` and `pattern`.
 
 ```typescript
 {
@@ -250,20 +262,21 @@ appears in the violation tag logged to Redis and in `debugMode` output.
 
 ### Adding a new detection layer (e.g., L6: header pattern analysis)
 
-1. Add an analyzer method to `ThreatScoreEngine` in § 3.
-2. Add the corresponding weight key to `ThreatScoringWeights` in § 1.
-3. Add a default value to `DEFAULT_WEIGHTS` in § 2.
-4. Call the analyzer inside `withHippocrates()` in § 7, following the
+1. Add an analyzer function to `src/engine/analyzers.ts`.
+2. Add the corresponding weight key to `ThreatScoringWeights` in `src/engine/types.ts`.
+3. Add a default value to `DEFAULT_WEIGHTS` in `src/engine/constants.ts`.
+4. Call the analyzer inside `src/system/pipeline.ts`, following the
    existing L1–L3 pattern (run analyzer, check result, call `addScore`).
-5. Add the new weight to the JSDoc table in the `withHippocrates` comment.
+5. Wire the analyzer into `ThreatScoreEngine` in `src/engine/threat-score-engine.ts`.
 
 New layers always go BEFORE the body-parsing block (L4+L5). Header and
 behavioral checks are cheap; body parsing is expensive — keep that last.
 
 ### Adding a new decoy response template
 
-Edit `generateDecoyResponse()` in § 4. Add a new `if (slot === N)` branch
-and increment the slot count: `Math.floor(Math.random() * (N+1))`.
+Edit `generateDecoyResponse()` in `src/system/honeypot.ts`. Add a new
+`if (slot === N)` branch and increment the slot count:
+`Math.floor(Math.random() * (N+1))`.
 
 Mirror realistic API response shapes. Include `requestId`, `timestamp`,
 nested `data` objects. Avoid obviously fake values like `"fake_data"`.
@@ -280,9 +293,15 @@ tier charges per key size in some configurations.
 | `hc:s:{ip}` | Cumulative threat score (integer 0–100) | `threatTtlSeconds` (3600s) |
 | `hc:t:{ip}` | Request timestamp list for velocity window | `velocityWindowMs/1000 + 10s` |
 | `hc:l:{ip}` | Last-seen timestamp for timing analysis | 300s (hardcoded) |
+| `hc:stats:requests` | Total request counter (atomic incr) | Persistent |
+| `hc:stats:honeypot` | Honeypot trigger counter | Persistent |
+| `hc:stats:scores` | Score distribution histogram | Persistent |
 
 The `hc:t:{ip}` key uses a Redis list capped at 500 entries via `ltrim`.
 Never change this cap without considering Upstash/Redis memory limits.
+
+`hc:stats:*` keys are only created when `enableStats: true` is set in config.
+They use Redis `INCR` for atomic counters and are not scoped per IP.
 
 ---
 
@@ -295,6 +314,7 @@ Hippocrates injects two internal headers:
 |--------|-------|---------|
 | `x-hippocrates-score` | Integer string, e.g. `"12"` | Threat score for audit logging |
 | `x-hippocrates-clean` | `"1"` | Signals the request passed all checks |
+| `x-hippocrates-request-id` | UUID string | Unique request identifier for log correlation |
 
 Read them in your handler via `req.headers.get("x-hippocrates-score")`.
 Strip them before forwarding to third-party services.

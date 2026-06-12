@@ -12,17 +12,28 @@ Next.js App Router security middleware library (NPM: `hippocrates`). Wraps route
 ```
 hippocrates/
 ├── src/
-│   ├── index.ts          # Main library (1026 lines, single entry point)
+│   ├── index.ts                    # Entry point + HOF (221 lines, re-exports all modules)
+│   ├── engine/
+│   │   ├── types.ts                # Type definitions (279 lines)
+│   │   ├── constants.ts            # Defaults, UA patterns, obfuscation patterns (199 lines)
+│   │   ├── analyzers.ts            # Individual layer analyzers (97 lines)
+│   │   └── threat-score-engine.ts  # ThreatScoreEngine class (306 lines)
+│   ├── system/
+│   │   ├── honeypot.ts             # Decoy, honeypot, stats, Redis degradation (152 lines)
+│   │   ├── pipeline.ts             # Pipeline orchestration (327 lines)
+│   │   └── validator.ts            # Zod validatePayload + ensureStrict (174 lines)
 │   ├── utils/
-│   │   └── ip.ts         # IPv6 normalization utility
+│   │   └── ip.ts                   # IPv6 normalization (90 lines)
 │   └── __tests__/
-│       ├── helpers.ts                    # Test mocks (Redis, NextRequest, NextResponse)
-│       ├── ip.test.ts                    # 29 tests (IPv6 normalization)
-│       ├── threat-score-engine.test.ts   # 35 tests
-│       ├── validate-payload.test.ts      # 7 tests
-│       ├── decoy.test.ts                 # 9 tests
-│       ├── with-hippocrates.test.ts      # 21 tests
-│       └── ensure-strict.test.ts         # 14 tests (recursive .strict())
+│       ├── helpers.ts                          # Test mocks (Redis, NextRequest, NextResponse)
+│       ├── ip.test.ts                          # 29 tests (IPv6 normalization)
+│       ├── threat-score-engine.test.ts          # 35 tests
+│       ├── validate-payload.test.ts             # 7 tests
+│       ├── decoy.test.ts                       # 9 tests
+│       ├── with-hippocrates.test.ts             # 30 tests
+│       ├── ensure-strict.test.ts                # 22 tests (recursive .strict())
+│       ├── redis-degradation.test.ts            # 6 tests (Redis fallback/circuit breaker)
+│       └── stats.test.ts                       # 5 tests (request statistics)
 ├── example/
 │   └── app/api/data/route.ts  # Reference implementation
 ├── .github/workflows/ci.yml   # GitHub Actions (lint → typecheck → test → build)
@@ -42,36 +53,42 @@ hippocrates/
 
 | Task | Location | Notes |
 |------|----------|-------|
-| Core logic (all layers) | `src/index.ts` | 8 sections (§1-§8), 1026 lines |
+| Entry point + HOF | `src/index.ts` | `withHippocrates()` — primary export, ~221 lines |
+| Type definitions | `src/engine/types.ts` | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights` |
+| Constants & defaults | `src/engine/constants.ts` | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS` |
+| Per-layer analyzers | `src/engine/analyzers.ts` | Pure functions: timing, velocity, UA, obfuscation, headers |
+| ThreatScoreEngine | `src/engine/threat-score-engine.ts` | Redis-integrated scoring (get/add score) |
+| Pipeline orchestration | `src/system/pipeline.ts` | Runs L0–L6, builds cleanReq, manages requestId |
+| Honeypot + decoy | `src/system/honeypot.ts` | `generateDecoyResponse()`, `serveHoneypot()`, stats, Redis degradation |
+| Zod validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` |
 | IPv6 normalization | `src/utils/ip.ts` | `normalizeIp()`, `resolveClientIp()` |
-| Integration tests | `src/__tests__/with-hippocrates.test.ts` | 21 tests, covers all layers |
+| Integration tests | `src/__tests__/with-hippocrates.test.ts` | 30 tests, covers all layers |
 | Unit tests (engine) | `src/__tests__/threat-score-engine.test.ts` | 35 tests (includes L6 header tests) |
 | Decoy/honeypot tests | `src/__tests__/decoy.test.ts` | 9 tests |
 | Validator tests | `src/__tests__/validate-payload.test.ts` | 7 tests |
-| ensureStrict tests | `src/__tests__/ensure-strict.test.ts` | 14 tests (recursive .strict()) |
+| ensureStrict tests | `src/__tests__/ensure-strict.test.ts` | 22 tests (recursive .strict()) |
+| Redis degradation tests | `src/__tests__/redis-degradation.test.ts` | 6 tests (Redis fallback, circuit breaker) |
+| Stats tests | `src/__tests__/stats.test.ts` | 5 tests (request counts, score histograms) |
 | IPv6 normalization tests | `src/__tests__/ip.test.ts` | 29 tests |
 | Example consumer | `example/app/api/data/route.ts` | Reference impl |
 | CI pipeline | `.github/workflows/ci.yml` | Node 18/20/22 matrix |
 | Skill definition | `SKILL.md` | Loadable by task agents |
 | Orientation | `CLAUDE.md` | Onboarding + invariants |
 
-## src/index.ts SECTION MAP
+## MODULE MAP
 
-| § | Content | Lines | Key Exports |
-|---|---------|-------|-------------|
-| §1 | Type definitions | 31–139 | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AppRouteHandler`, `ValidationResult` |
-| §2 | Constants & defaults | 140–301 | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS`, `OBFUSCATION_PATTERNS`, `MIN_HUMAN_INTERVAL_MS`, `HEADER_ANOMALY_PATTERNS` |
-| §3 | ThreatScoreEngine | 302–510 | `getScore()`, `addScore()`, `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `detectObfuscation()`, `analyzeHeaders()` |
-| §4 | Decoy generator | 511–621 | `generateDecoyResponse()` — 4 rotating templates |
-| §5 | Honeypot response | 623–669 | `serveHoneypot()` — builds fake 200 OK |
-| §6 | Zod validator + ensureStrict | 671–802 | `validatePayload<T>()`, `ensureStrict<T>()` |
-| §7 | withHippocrates HOF | 804–1017 | `withHippocrates()` — primary export, orchestrates all layers |
-| §8 | Re-exports | 1019–1026 | `z` (Zod), `ZodSchema` type |
+| Module | File | Lines | Key Exports |
+|--------|------|:-----:|-------------|
+| Types | `src/engine/types.ts` | 279 | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AppRouteHandler`, `ValidationResult` |
+| Constants | `src/engine/constants.ts` | 199 | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS`, `OBFUSCATION_PATTERNS`, `HEADER_ANOMALY_PATTERNS` |
+| Analyzers | `src/engine/analyzers.ts` | 97 | `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `detectObfuscation()`, `analyzeHeaders()` |
+| Engine | `src/engine/threat-score-engine.ts` | 306 | `ThreatScoreEngine` — `getScore()`, `addScore()`, `calculateScore()` |
+| Honeypot | `src/system/honeypot.ts` | 152 | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, `getStats()`, `resetStats()` |
+| Pipeline | `src/system/pipeline.ts` | 327 | Pipeline orchestration — runs L0–L6 analyzers, builds `cleanReq` |
+| Validator | `src/system/validator.ts` | 174 | `validatePayload<T>()`, `ensureStrict<T>()` |
+| Index | `src/index.ts` | 221 | `withHippocrates()`, `ensureStrict()`, `validatePayload()`, re-exports |
 
 ## CONVENTIONS
-
-- **Single-file library** until ~1200 lines. Do NOT split unless exceeded.
-- **8 sections** clearly marked with `§` comments in `src/index.ts`. Edit in the correct section.
 - **Aggressive TypeScript**: `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `noImplicitReturns`.
 - **ValidationResult** uses `ok: true/false` (NOT `success`) to avoid collision with API response shapes.
 - **Generic constraint**: `T extends Record<string, unknown>` for Zod schema type param.
@@ -109,7 +126,7 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config
-npm test               # Vitest (115 tests across 6 files)
+npm test               # Vitest (143 tests across 8 files)
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
 ```

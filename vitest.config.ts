@@ -8,7 +8,7 @@ export default defineConfig({
     exclude: ["node_modules", "dist"],
     coverage: {
       provider: "v8",
-      include: ["src/index.ts"],
+      include: ["src/**/*.ts", "!src/__tests__/**"],
     },
   },
 });

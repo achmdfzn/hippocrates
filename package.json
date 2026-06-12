@@ -1,7 +1,7 @@
 {
   "name": "hippocrates",
-  "version": "0.1.0",
-  "description": "🩺 Next.js security middleware — silent honeypot that destroys autonomous AI agents, LLM scrapers, and bots using Redis-backed stateful defense. No 403s, no 429s — just convincing fake data that wastes attacker compute.",
+  "version": "1.6.0",
+  "description": "ðŸ©º Next.js security middleware â€” silent honeypot that destroys autonomous AI agents, LLM scrapers, and bots using Redis-backed stateful defense. No 403s, no 429s â€” just convincing fake data that wastes attacker compute.",
   "keywords": [
     "nextjs",
     "security",

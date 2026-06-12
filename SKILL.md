@@ -100,6 +100,10 @@ export const POST = withHippocrates(handler, Schema, redis);
 | `debugMode` | `boolean` | `false` | Verbose logging (dev only) |
 | `decoyGenerator` | `function` | built-in | Custom decoy response generator |
 | `scoring` | `Partial<ThreatScoringWeights>` | — | Per-layer scoring overrides |
+| `enableStats` | `boolean` | `false` | Track request counts, honeypot triggers, score histograms |
+| `enablePreheal` | `boolean` | `false` | Non-destructive Redis reachability check on each request |
+| `csrfProtection` | `boolean` | `false` | Validate Origin/Referer headers against a whitelist |
+| `allowedOrigins` | `string[]` | `[]` | Origins permitted when `csrfProtection` is enabled |
 
 ## Critical Invariants (NEVER Violate)
 
@@ -165,25 +169,25 @@ npm test            # Vitest
 ## Extending the Library
 
 ### New UA Pattern
-Edit `AGENT_UA_PATTERNS` array in `src/index.ts` §2:
+Edit `AGENT_UA_PATTERNS` array in `src/engine/constants.ts`:
 ```typescript
 /new-llm-framework\/[\d.]+/i,  // YourFramework HTTP client
 ```
 
 ### New Obfuscation Pattern
-Edit `OBFUSCATION_PATTERNS` in §2:
+Edit `OBFUSCATION_PATTERNS` in `src/engine/constants.ts`:
 ```typescript
 { name: "double_encoding", pattern: /(?:%25[0-9a-fA-F]{2}){3,}/ },
 ```
 
 ### New Decoy Template
-Edit `generateDecoyResponse()` in §4. Increment slot count: `Math.floor(Math.random() * (N+1))`.
+Edit `generateDecoyResponse()` in `src/system/honeypot.ts`. Increment slot count: `Math.floor(Math.random() * (N+1))`.
 
 ### New Detection Layer
-1. Add analyzer method to `ThreatScoreEngine` (§3)
-2. Add weight key to `ThreatScoringWeights` (§1)
-3. Add default to `DEFAULT_WEIGHTS` (§2)
-4. Call analyzer inside `withHippocrates()` (§7) before body-parsing block (L4+L5)
+1. Add analyzer function to `src/engine/analyzers.ts`
+2. Add weight key to `ThreatScoringWeights` in `src/engine/types.ts`
+3. Add default to `DEFAULT_WEIGHTS` in `src/engine/constants.ts`
+4. Call analyzer inside `src/system/pipeline.ts` before body-parsing block (L4+L5)
 
 ## Pitfalls
 

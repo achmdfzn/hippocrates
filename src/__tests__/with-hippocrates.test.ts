@@ -1,12 +1,12 @@
-/**
- * Integration tests for withHippocrates (§7) — the primary HOF export.
+﻿/**
+ * Integration tests for withHippocrates (Â§7) â€” the primary HOF export.
  *
  * Tests each security layer (L0-L5), score gating, error handling,
  * and the forward-to-handler path.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Hoisted mockJson — vi.mock is hoisted to top, so any variable it references
+// Hoisted mockJson â€” vi.mock is hoisted to top, so any variable it references
 // must be defined with vi.hoisted() to exist in the hoisted scope.
 const { mockJson } = vi.hoisted(() => ({
   mockJson: vi.fn(),
@@ -135,9 +135,9 @@ function createWrappedHandler(config?: HippocratesConfig) {
   return { wrapped, innerHandler, redis: client };
 }
 
-// ── Basic pass-through ───────────────────────────────────────────────
+// â”€â”€ Basic pass-through â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — basic pass-through", () => {
+describe("withHippocrates â€” basic pass-through", () => {
   it("forwards valid requests to the inner handler", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -206,9 +206,9 @@ describe("withHippocrates — basic pass-through", () => {
   });
 });
 
-// ── L0: Pre-flight ───────────────────────────────────────────────────
+// â”€â”€ L0: Pre-flight â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L0 pre-flight", () => {
+describe("withHippocrates â€” L0 pre-flight", () => {
   it("honeypots immediately when existing score >= threshold", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -258,9 +258,9 @@ describe("withHippocrates — L0 pre-flight", () => {
   });
 });
 
-// ── L1: Timing ───────────────────────────────────────────────────────
+// â”€â”€ L1: Timing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L1 timing", () => {
+describe("withHippocrates â€” L1 timing", () => {
   it("adds impossibleTiming score for sub-50ms intervals", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -295,9 +295,9 @@ describe("withHippocrates — L1 timing", () => {
   });
 });
 
-// ── L2: Velocity ─────────────────────────────────────────────────────
+// â”€â”€ L2: Velocity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L2 velocity", () => {
+describe("withHippocrates â€” L2 velocity", () => {
   it("adds velocityViolation score when exceeding max requests", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -334,9 +334,9 @@ describe("withHippocrates — L2 velocity", () => {
   });
 });
 
-// ── L3: User-Agent ───────────────────────────────────────────────────
+// â”€â”€ L3: User-Agent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L3 User-Agent", () => {
+describe("withHippocrates â€” L3 User-Agent", () => {
   it("adds suspiciousUserAgent score for known agent UA", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -402,9 +402,9 @@ describe("withHippocrates — L3 User-Agent", () => {
   });
 });
 
-// ── L4: Obfuscation ──────────────────────────────────────────────────
+// â”€â”€ L4: Obfuscation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L4 obfuscation", () => {
+describe("withHippocrates â€” L4 obfuscation", () => {
   it("honeypots when Base64 obfuscation is detected (100 pts)", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -428,14 +428,14 @@ describe("withHippocrates — L4 obfuscation", () => {
 
     await wrapped(req);
 
-    // 100 pts from obfuscation >= 65 threshold → honeypot, handler not called
+    // 100 pts from obfuscation >= 65 threshold â†’ honeypot, handler not called
     expect(innerHandler).not.toHaveBeenCalled();
   });
 });
 
-// ── L5: Schema violation ─────────────────────────────────────────────
+// â”€â”€ L5: Schema violation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — L5 schema violation", () => {
+describe("withHippocrates â€” L5 schema violation", () => {
   it("honeypots when Zod .strict() detects extra fields (100 pts)", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -486,9 +486,9 @@ describe("withHippocrates — L5 schema violation", () => {
   });
 });
 
-// ── GET / HEAD / OPTIONS ─────────────────────────────────────────────
+// â”€â”€ GET / HEAD / OPTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — GET/HEAD/OPTIONS", () => {
+describe("withHippocrates â€” GET/HEAD/OPTIONS", () => {
   it("skips body parsing for GET requests", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -550,9 +550,9 @@ describe("withHippocrates — GET/HEAD/OPTIONS", () => {
   });
 });
 
-// ── Score gate (post-L5) ─────────────────────────────────────────────
+// â”€â”€ Score gate (post-L5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — score gate after all layers", () => {
+describe("withHippocrates â€” score gate after all layers", () => {
   it("honeypots when combined score crosses threshold", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -575,7 +575,7 @@ describe("withHippocrates — score gate after all layers", () => {
       body: JSON.stringify({
         userId: "550e8400-e29b-41d4-a716-446655440000",
         action: "read",
-        extra: "field", // L5 will fire: +100 → honeypot
+        extra: "field", // L5 will fire: +100 â†’ honeypot
       }),
     });
 
@@ -587,9 +587,9 @@ describe("withHippocrates — score gate after all layers", () => {
   });
 });
 
-// ── Error handling ───────────────────────────────────────────────────
+// â”€â”€ Error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — error handling", () => {
+describe("withHippocrates â€” error handling", () => {
   it("returns a generic 500 error (no details leaked)", async () => {
     let capturedStatus = 0;
     let capturedBody: unknown = null;
@@ -619,9 +619,9 @@ describe("withHippocrates — error handling", () => {
   });
 });
 
-// ── Custom decoy generator ───────────────────────────────────────────
+// â”€â”€ Custom decoy generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — custom decoy generator", () => {
+describe("withHippocrates â€” custom decoy generator", () => {
   it("uses custom decoy function when provided", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -651,9 +651,9 @@ describe("withHippocrates — custom decoy generator", () => {
   });
 });
 
-// ── Debug mode ───────────────────────────────────────────────────────
+// â”€â”€ Debug mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — debug mode", () => {
+describe("withHippocrates â€” debug mode", () => {
   it("does not throw in debug mode (console output is best-effort)", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -678,9 +678,9 @@ describe("withHippocrates — debug mode", () => {
   });
 });
 
-// ── Non-JSON body ────────────────────────────────────────────────────
+// â”€â”€ Non-JSON body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("withHippocrates — non-JSON body handling", () => {
+describe("withHippocrates â€” non-JSON body handling", () => {
   it("adds nonJsonBody score for invalid JSON and still passes if below threshold", async () => {
     mockJson.mockImplementation((body, init) => ({
       status: init?.status ?? 200,
@@ -699,7 +699,7 @@ describe("withHippocrates — non-JSON body handling", () => {
       scoring: { nonJsonBody: 10 },
     });
 
-    // Invalid JSON → nonJsonBody +10 (still below 65), handler should run
+    // Invalid JSON â†’ nonJsonBody +10 (still below 65), handler should run
     const req = mockRequest({ body: "not-json-at-all" });
     await wrapped(req);
 
@@ -719,12 +719,252 @@ describe("withHippocrates — non-JSON body handling", () => {
     const innerHandler = vi.fn();
     const wrapped = withHippocrates(innerHandler, TestSchema, client, {
       threatScoreThreshold: 65,
-      scoring: { nonJsonBody: 10 }, // 60 + 10 = 70 ≥ 65
+      scoring: { nonJsonBody: 10 }, // 60 + 10 = 70 â‰¥ 65
     });
 
     const req = mockRequest({ ip: "8.8.8.8", body: "not-json" });
     await wrapped(req);
 
+    expect(innerHandler).not.toHaveBeenCalled();
+  });
+});
+
+// â”€â”€ v1.6: IP allowlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("withHippocrates â€” v1.6 IP allowlist", () => {
+  it("skips all security checks for allowlisted IP (exact match)", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.1"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT skip security for non-allowlisted IP", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.1"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.2" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1); // Still called for clean req
+  });
+
+  it("allowlisted IP bypasses even with high pre-existing score", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:10.0.0.1", "100"); // Max score
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.1"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1); // Bypassed
+  });
+});
+
+// â”€â”€ v1.6: Body size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("withHippocrates â€” v1.6 body size limit", () => {
+  it("adds body_too_large penalty when content-length exceeds limit", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      bodyLimit: { maxBytes: 10, enabled: true },
+    });
+
+    const req = mockRequest({
+      headers: { "content-length": "100" },
+      body: JSON.stringify({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        action: "read",
+      }),
+    });
+    await wrapped(req);
+
+    // body_too_large adds +10, threshold is 65, so handler still runs
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// â”€â”€ v1.6: Method-based thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("withHippocrates â€” v1.6 method-based thresholds", () => {
+  it("uses method-specific threshold for POST that is stricter than default", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:5.5.5.5", "45");
+
+    const innerHandler = vi.fn();
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      methodThresholds: { POST: 40 },
+    });
+
+    const req = mockRequest({ ip: "5.5.5.5", method: "POST" });
+    await wrapped(req);
+
+    // Score 45 >= POST threshold 40 -> honeypot
+    expect(innerHandler).not.toHaveBeenCalled();
+  });
+
+  it("uses default threshold when no method-specific one exists", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:6.6.6.6", "50");
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      methodThresholds: { POST: 40 }, // Only POST has custom threshold
+    });
+
+    const req = mockRequest({ ip: "6.6.6.6", method: "GET" });
+    await wrapped(req);
+
+    // 50 < 65 (default), so handler runs
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// â”€â”€ v1.6: Config presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("withHippocrates â€” v1.6 config presets", () => {
+  it("preset=strict blocks more aggressively", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:3.3.3.3", "45");
+
+    const innerHandler = vi.fn();
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      preset: "strict", // threshold=40
+    });
+
+    const req = mockRequest({ ip: "3.3.3.3" });
+    await wrapped(req);
+
+    // 45 >= 40 (strict threshold) -> honeypot
+    expect(innerHandler).not.toHaveBeenCalled();
+  });
+
+  it("preset=relaxed allows more requests", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:4.4.4.4", "70");
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      preset: "relaxed", // threshold=80
+    });
+
+    const req = mockRequest({ ip: "4.4.4.4" });
+    await wrapped(req);
+
+    // 70 < 80 (relaxed threshold) -> allowed
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// â”€â”€ v1.6: Violation messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("withHippocrates â€” v1.6 violation messages", () => {
+  it("custom violation message overrides decoy for schema violations", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      body,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      violationMessages: {
+        schema: (_v) => ({ error: "invalid_data", code: "ERR_001" }),
+      },
+    });
+
+    const req = mockRequest({
+      body: JSON.stringify({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        action: "read",
+        extra: "field", // Triggers schema violation
+      }),
+    });
+
+    await wrapped(req);
     expect(innerHandler).not.toHaveBeenCalled();
   });
 });

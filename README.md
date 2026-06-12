@@ -1,13 +1,13 @@
-<p align="center">
+﻿<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/6e5b3fa5-d7e2-44bb-849d-7ea79b5d95f7">
     <img alt="Hippocrates" src="https://github.com/user-attachments/assets/6e5b3fa5-d7e2-44bb-849d-7ea79b5d95f7" width="140">
   </picture>
   <br/>
-  <em>First, do no harm — to your API.</em>
+  <em>First, do no harm â€” to your API.</em>
 </p>
 
-<h1 align="center">🩺 Hippocrates</h1>
+<h1 align="center">ðŸ©º Hippocrates</h1>
 
 <p align="center">
   <strong>Next.js App Router Security Middleware</strong><br/>
@@ -43,38 +43,38 @@
 </p>
 
 <p align="center">
-  <a href="#-the-problem">The Problem</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-how-it-works">How It Works</a> •
-  <a href="#-defense-layers">Defense Layers</a> •
-  <a href="#-comparison">Comparison</a> •
-  <a href="#-api-reference">API</a> •
+  <a href="#-the-problem">The Problem</a> â€¢
+  <a href="#-quick-start">Quick Start</a> â€¢
+  <a href="#-how-it-works">How It Works</a> â€¢
+  <a href="#-defense-layers">Defense Layers</a> â€¢
+  <a href="#-comparison">Comparison</a> â€¢
+  <a href="#-api-reference">API</a> â€¢
   <a href="#-use-cases">Use Cases</a>
 </p>
 
 <br/>
 
-> **🚨 Traditional API security is broken.** Rate limiting tells attackers to slow down. WAF blocks tell them to rotate IPs. `403` and `429` responses are *signals*, not defenses — they make AI agents *smarter*.
+> **ðŸš¨ Traditional API security is broken.** Rate limiting tells attackers to slow down. WAF blocks tell them to rotate IPs. `403` and `429` responses are *signals*, not defenses â€” they make AI agents *smarter*.
 >
-> **Hippocrates flips the script.** Every detected threat gets a convincing `200 OK` with realistic fake data. The attacker wastes compute, burns through token budgets, and their agentic pipelines break silently — never knowing they've been caught.
+> **Hippocrates flips the script.** Every detected threat gets a convincing `200 OK` with realistic fake data. The attacker wastes compute, burns through token budgets, and their agentic pipelines break silently â€” never knowing they've been caught.
 
 ---
 
-## ✨ Features at a Glance
+## âœ¨ Features at a Glance
 
 | Feature | What It Does |
 |---------|-------------|
-| 🤫 **Silent Honeypot** | `200 OK` with fake data — zero signal to the attacker |
-| 🧠 **Stateful Threat Scoring** | Redis-backed cumulative scores persist across requests |
-| ⚡ **6 Defense Layers** | Timing, velocity, UA, obfuscation, schema, headers |
-| 🚀 **Edge-Ready** | Works on Vercel Edge Runtime, Node.js — zero `Buffer` usage |
-| 🔒 **Zero-Trust Validation** | Recursive `.strict()` on every nested Zod type |
-| 🤖 **AI Agent Detection** | 40+ patterns: OpenAI, Anthropic, LangChain, Playwright, more |
-| 📊 **No Data Leakage** | Error messages intentionally vague — no schema details exposed |
+| ðŸ¤« **Silent Honeypot** | `200 OK` with fake data â€” zero signal to the attacker |
+| ðŸ§  **Stateful Threat Scoring** | Redis-backed cumulative scores persist across requests |
+| âš¡ **6 Defense Layers** | Timing, velocity, UA, obfuscation, schema, headers |
+| ðŸš€ **Edge-Ready** | Works on Vercel Edge Runtime, Node.js â€” zero `Buffer` usage |
+| ðŸ”’ **Zero-Trust Validation** | Recursive `.strict()` on every nested Zod type |
+| ðŸ¤– **AI Agent Detection** | 40+ patterns: OpenAI, Anthropic, LangChain, Playwright, more |
+| ðŸ“Š **No Data Leakage** | Error messages intentionally vague â€” no schema details exposed |
 
 ---
 
-## 🔥 The Problem
+## ðŸ”¥ The Problem
 
 Modern API threats **aren't human**. Autonomous AI agents can:
 
@@ -116,33 +116,33 @@ Modern API threats **aren't human**. Autonomous AI agents can:
 <tr>
   <td><strong>Rate limiting (429)</strong></td>
   <td>Tells attacker to slow down, adapt interval</td>
-  <td>✅ <code>200 OK</code> with fake data — no signal</td>
+  <td>âœ… <code>200 OK</code> with fake data â€” no signal</td>
 </tr>
 <tr>
   <td><strong>WAF blocks (403)</strong></td>
   <td>Gives attacker signal to rotate IP/proxy</td>
-  <td>✅ Attacker can't detect they're blocked</td>
+  <td>âœ… Attacker can't detect they're blocked</td>
 </tr>
 <tr>
   <td><strong>Stateless validation</strong></td>
   <td>Misses cross-request behavioral patterns</td>
-  <td>✅ Redis-backed cross-request state</td>
+  <td>âœ… Redis-backed cross-request state</td>
 </tr>
 <tr>
   <td><strong>Zod <code>.parse()</code> without <code>.strict()</code></strong></td>
-  <td>Silently strips extra fields — attacker wins</td>
-  <td>✅ Recursive <code>.strict()</code> — nothing slips through</td>
+  <td>Silently strips extra fields â€” attacker wins</td>
+  <td>âœ… Recursive <code>.strict()</code> â€” nothing slips through</td>
 </tr>
 <tr>
   <td><strong>Simple API keys</strong></td>
   <td>Agents can rotate keys from breached env files</td>
-  <td>✅ Behavioral detection — keys don't matter</td>
+  <td>âœ… Behavioral detection â€” keys don't matter</td>
 </tr>
 </table>
 
 ---
 
-## 🚀 Quick Start
+## ðŸš€ Quick Start
 
 ```bash
 npm install hippocrates zod @upstash/redis
@@ -161,7 +161,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// ⚠️  .strict() is MANDATORY — extra fields trigger instant honeypot
+// âš ï¸  .strict() is MANDATORY â€” extra fields trigger instant honeypot
 const Schema = z.object({
   userId: z.string().uuid(),
   action: z.enum(["read", "write"]),
@@ -172,12 +172,12 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ success: true, data: body });
 }
 
-// 🩺 That's it. One wrapper. Full protection.
+// ðŸ©º That's it. One wrapper. Full protection.
 export const POST = withHippocrates(handler, Schema, redis);
 ```
 
 <details>
-<summary><strong>🔧 With Custom Configuration →</strong></summary>
+<summary><strong>ðŸ”§ With Custom Configuration â†’</strong></summary>
 
 ```typescript
 export const POST = withHippocrates(handler, Schema, redis, {
@@ -206,60 +206,60 @@ export const POST = withHippocrates(handler, Schema, redis, {
 
 ---
 
-## 🏗️ How It Works
+## ðŸ—ï¸ How It Works
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Incoming Request                             │
-│                           (any IP)                                   │
-└─────────────────────────┬───────────────────────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                  withHippocrates Middleware Pipeline                    │
-│                                                                      │
-│   ┌──────┐    ┌─────┐    ┌──────┐    ┌─────┐    ┌─────┐    ┌─────┐ │
-│   │  L0  │───▶│ L1  │───▶│  L2  │───▶│ L3  │───▶│ L4  │───▶│ L5  │ │
-│   │Score │    │Tim- │    │Velo- │    │ UA  │    │Obfus│    │Schema│ │
-│   │Check │    │ing  │    │city  │    │Finger│    │cation│    │Valid │ │
-│   └──────┘    └─────┘    └──────┘    └─────┘    └─────┘    └─────┘ │
-│      │          │          │          │          │          │       │
-│      ▼          ▼          ▼          ▼          ▼          ▼       │
-│                                                                      │
-│       ┌────────────────────────────────────────────────────┐         │
-│       │         Cumulative Threat Score (0–100)            │         │
-│       │           Persisted in Redis per IP                │         │
-│       └──────────────────────┬─────────────────────────────┘         │
-│                              │                                       │
-│                              ▼                                       │
-│              ┌──────────────────────────────┐                        │
-│              │        Score ≥ Threshold?     │                        │
-│              │        (default: 65)          │                        │
-│              └──────────┬─────────┬─────────┘                        │
-│                         │         │                                  │
-│                    YES  │         │  NO                              │
-│                         │         │                                  │
-│                         ▼         ▼                                  │
-│              ┌────────────────┐  ┌──────────────────┐                │
-│              │   🚨 HONEYPOT  │  │  ✅ FORWARD TO    │                │
-│              │ 200 OK (fake) │  │   REAL HANDLER    │                │
-│              └────────────────┘  └──────────────────┘                │
-└──────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                         Incoming Request                             â”‚
+â”‚                           (any IP)                                   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                          â”‚
+                          â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                  withHippocrates Middleware Pipeline                    â”‚
+â”‚                                                                      â”‚
+â”‚   â”Œâ”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â” â”‚
+â”‚   â”‚  L0  â”‚â”€â”€â”€â–¶â”‚ L1  â”‚â”€â”€â”€â–¶â”‚  L2  â”‚â”€â”€â”€â–¶â”‚ L3  â”‚â”€â”€â”€â–¶â”‚ L4  â”‚â”€â”€â”€â–¶â”‚ L5  â”‚ â”‚
+â”‚   â”‚Score â”‚    â”‚Tim- â”‚    â”‚Velo- â”‚    â”‚ UA  â”‚    â”‚Obfusâ”‚    â”‚Schemaâ”‚ â”‚
+â”‚   â”‚Check â”‚    â”‚ing  â”‚    â”‚city  â”‚    â”‚Fingerâ”‚    â”‚cationâ”‚    â”‚Valid â”‚ â”‚
+â”‚   â””â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚      â”‚          â”‚          â”‚          â”‚          â”‚          â”‚       â”‚
+â”‚      â–¼          â–¼          â–¼          â–¼          â–¼          â–¼       â”‚
+â”‚                                                                      â”‚
+â”‚       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”         â”‚
+â”‚       â”‚         Cumulative Threat Score (0â€“100)            â”‚         â”‚
+â”‚       â”‚           Persisted in Redis per IP                â”‚         â”‚
+â”‚       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜         â”‚
+â”‚                              â”‚                                       â”‚
+â”‚                              â–¼                                       â”‚
+â”‚              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                        â”‚
+â”‚              â”‚        Score â‰¥ Threshold?     â”‚                        â”‚
+â”‚              â”‚        (default: 65)          â”‚                        â”‚
+â”‚              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                        â”‚
+â”‚                         â”‚         â”‚                                  â”‚
+â”‚                    YES  â”‚         â”‚  NO                              â”‚
+â”‚                         â”‚         â”‚                                  â”‚
+â”‚                         â–¼         â–¼                                  â”‚
+â”‚              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                â”‚
+â”‚              â”‚   ðŸš¨ HONEYPOT  â”‚  â”‚  âœ… FORWARD TO    â”‚                â”‚
+â”‚              â”‚ 200 OK (fake) â”‚  â”‚   REAL HANDLER    â”‚                â”‚
+â”‚              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### The Core Pattern
 
 1. **Every request** enters the middleware pipeline
 2. **6 defense layers** analyze timing, velocity, UA, obfuscation, schema, and headers
-3. **A cumulative score (0–100)** is computed and stored in Redis per IP
-4. **Score ≥ 65** → automatic routing to a convincing honeypot (`200 OK` with fake data)
-5. **Score < 65** → request forwarded to your real handler with validated data
+3. **A cumulative score (0â€“100)** is computed and stored in Redis per IP
+4. **Score â‰¥ 65** â†’ automatic routing to a convincing honeypot (`200 OK` with fake data)
+5. **Score < 65** â†’ request forwarded to your real handler with validated data
 
-> **Key insight:** The honeypot generates realistic-looking responses that vary per request — 4 rotating templates with randomized fake data. The attacker burns compute processing fake data they can't distinguish from real API responses.
+> **Key insight:** The honeypot generates realistic-looking responses that vary per request â€” 4 rotating templates with randomized fake data. The attacker burns compute processing fake data they can't distinguish from real API responses.
 
 ---
 
-## ⚔️ The 6 Defense Layers
+## âš”ï¸ The 6 Defense Layers
 
 | # | Layer | Signal | Points | What Gets Flagged |
 |---|-------|--------|:------:|-------------------|
@@ -267,41 +267,41 @@ export const POST = withHippocrates(handler, Schema, redis, {
 | **L1** | Timing Analysis | Request interval < 50ms | **+25** | Machine-speed execution (no human types that fast) |
 | **L2** | Velocity Tracking | Burst > 15 req / 10s | **+40** | Sliding window via Redis list (capped at 500) |
 | **L3** | UA Fingerprinting | Suspicious / missing UA | **+15** | 40+ patterns: LLM SDKs, HTTP libs, headless browsers |
-| **L4** | Obfuscation Detection | Base64, Hex, Unicode in payload | **+100** 🚨 | Instant max score — no incremental tolerance |
-| **L5** | Schema Validation | Zod `.strict()` violation | **+100** 🚨 | Any extra field or type mismatch |
+| **L4** | Obfuscation Detection | Base64, Hex, Unicode in payload | **+100** ðŸš¨ | Instant max score â€” no incremental tolerance |
+| **L5** | Schema Validation | Zod `.strict()` violation | **+100** ðŸš¨ | Any extra field or type mismatch |
 | **L6** | Header Anomalies | Missing/wildcard headers | **+15** | Non-browser HTTP clients and scanners |
 
-> **L4 and L5 are instant max.** Any obfuscation or schema violation immediately pushes the threat score to 100 — no incremental tolerance. These are the nuclear options.
+> **L4 and L5 are instant max.** Any obfuscation or schema violation immediately pushes the threat score to 100 â€” no incremental tolerance. These are the nuclear options.
 
-### L1 — Timing Analysis
+### L1 â€” Timing Analysis
 Two requests from the same IP within **50ms** is a near-certain autonomous signal. No human can navigate a browser and submit a form that fast.
 
-### L2 — Velocity Tracking
+### L2 â€” Velocity Tracking
 Redis-backed sliding window tracks request counts per IP. Bursts exceeding `velocityMaxRequests` within `velocityWindowMs` trigger scoring. The timestamp list is capped at 500 entries via `ltrim` to manage memory.
 
-### L3 — User-Agent Fingerprinting
+### L3 â€” User-Agent Fingerprinting
 Detects **40+ agent patterns** across 4 categories:
 
 | Category | Patterns |
 |----------|----------|
-| **🤖 LLM SDKs** | `anthropic-sdk`, `openai-node`, `google-gemini`, `langchain`, `llamaindex`, `autogen`, `crewai`, `smolagents`, `cohere`, `mistral`, `together`, `groq`, `deepseek`, `dspy`, `huggingface` |
-| **🌐 HTTP Libs** | `python-requests`, `aiohttp`, `httpx`, `axios`, `node-fetch`, `got`, `curl`, `wget`, `go-http-client`, `java/*`, `okhttp` |
-| **🕵️ Browser Automation** | `playwright`, `puppeteer`, `selenium`, `cypress`, `phantomjs`, `headlesschrome` |
-| **🚫 Generic** | `bot`, `spider`, `crawler`, `scraper` (with version awareness to minimize false positives) |
+| **ðŸ¤– LLM SDKs** | `anthropic-sdk`, `openai-node`, `google-gemini`, `langchain`, `llamaindex`, `autogen`, `crewai`, `smolagents`, `cohere`, `mistral`, `together`, `groq`, `deepseek`, `dspy`, `huggingface` |
+| **ðŸŒ HTTP Libs** | `python-requests`, `aiohttp`, `httpx`, `axios`, `node-fetch`, `got`, `curl`, `wget`, `go-http-client`, `java/*`, `okhttp` |
+| **ðŸ•µï¸ Browser Automation** | `playwright`, `puppeteer`, `selenium`, `cypress`, `phantomjs`, `headlesschrome` |
+| **ðŸš« Generic** | `bot`, `spider`, `crawler`, `scraper` (with version awareness to minimize false positives) |
 
-### L4 — Obfuscation Detection
+### L4 â€” Obfuscation Detection
 Recursively scans all string values in JSON payloads for encoded/obfuscated content:
 
-- **Base64** — strings ≥ 24 chars matching `[A-Za-z0-9+/=]{24,}`
-- **Hex encoding** — strings ≥ 16 consecutive hex chars
-- **URL encoding** — 5+ consecutive `%xx` sequences
-- **Unicode escapes** — `\uXXXX` patterns
-- **HTML entities** — `&#dd;` and `&lt;` style encoding
+- **Base64** â€” strings â‰¥ 24 chars matching `[A-Za-z0-9+/=]{24,}`
+- **Hex encoding** â€” strings â‰¥ 16 consecutive hex chars
+- **URL encoding** â€” 5+ consecutive `%xx` sequences
+- **Unicode escapes** â€” `\uXXXX` patterns
+- **HTML entities** â€” `&#dd;` and `&lt;` style encoding
 
-### L5 — Zero-Trust Schema Validation
-Enforces `.strict()` recursively through the **entire schema tree** — including nested objects inside `refine()`, `transform()`, discriminated unions, tuples, branded types, and `ZodEffects`. **No extra field survives.**
+### L5 â€” Zero-Trust Schema Validation
+Enforces `.strict()` recursively through the **entire schema tree** â€” including nested objects inside `refine()`, `transform()`, discriminated unions, tuples, branded types, and `ZodEffects`. **No extra field survives.**
 
-### L6 — Header Anomaly Detection
+### L6 â€” Header Anomaly Detection
 Checks for missing or wildcard HTTP headers:
 - Missing `Accept` header
 - Missing `Accept-Language` header
@@ -312,142 +312,142 @@ These are patterns typical of non-browser HTTP clients, scanners, and bots that 
 
 ---
 
-## 📊 Comparison: Hippocrates vs Traditional Solutions
+## ðŸ“Š Comparison: Hippocrates vs Traditional Solutions
 
 <table>
 <tr>
   <th>Feature</th>
-  <th>🩺 Hippocrates</th>
+  <th>ðŸ©º Hippocrates</th>
   <th>Rate Limiting</th>
   <th>WAF</th>
   <th>express-rate-limit</th>
 </tr>
 <tr>
   <td><strong>Response to attacker</strong></td>
-  <td>✅ <code>200 OK</code> (fake data)</td>
-  <td>❌ <code>429</code></td>
-  <td>❌ <code>403</code></td>
-  <td>❌ <code>429</code></td>
+  <td>âœ… <code>200 OK</code> (fake data)</td>
+  <td>âŒ <code>429</code></td>
+  <td>âŒ <code>403</code></td>
+  <td>âŒ <code>429</code></td>
 </tr>
 <tr>
   <td><strong>Attacker can detect?</strong></td>
-  <td>✅ <strong>No</strong> — they think they succeeded</td>
-  <td>❌ Yes — adapts interval</td>
-  <td>❌ Yes — rotates IP</td>
-  <td>❌ Yes — adapts interval</td>
+  <td>âœ… <strong>No</strong> â€” they think they succeeded</td>
+  <td>âŒ Yes â€” adapts interval</td>
+  <td>âŒ Yes â€” rotates IP</td>
+  <td>âŒ Yes â€” adapts interval</td>
 </tr>
 <tr>
   <td><strong>Stateful (cross-request)</strong></td>
-  <td>✅ Redis-backed</td>
-  <td>❌ Usually stateless</td>
-  <td>❌ Per-request</td>
-  <td>❌ Per-window</td>
+  <td>âœ… Redis-backed</td>
+  <td>âŒ Usually stateless</td>
+  <td>âŒ Per-request</td>
+  <td>âŒ Per-window</td>
 </tr>
 <tr>
   <td><strong>AI agent fingerprinting</strong></td>
-  <td>✅ 40+ patterns</td>
-  <td>❌</td>
-  <td>❌</td>
-  <td>❌</td>
+  <td>âœ… 40+ patterns</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
 </tr>
 <tr>
   <td><strong>Obfuscation detection</strong></td>
-  <td>✅ Recursive scan</td>
-  <td>❌</td>
-  <td>⚠️ Partial</td>
-  <td>❌</td>
+  <td>âœ… Recursive scan</td>
+  <td>âŒ</td>
+  <td>âš ï¸ Partial</td>
+  <td>âŒ</td>
 </tr>
 <tr>
   <td><strong>Zero-Trust schema</strong></td>
-  <td>✅ Recursive <code>.strict()</code></td>
-  <td>❌</td>
-  <td>❌</td>
-  <td>❌</td>
+  <td>âœ… Recursive <code>.strict()</code></td>
+  <td>âŒ</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
 </tr>
 <tr>
   <td><strong>Edge Runtime</strong></td>
-  <td>✅ No <code>Buffer</code></td>
-  <td>✅</td>
-  <td>❌</td>
-  <td>❌</td>
+  <td>âœ… No <code>Buffer</code></td>
+  <td>âœ…</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
 </tr>
 <tr>
   <td><strong>LLM SDK detection</strong></td>
-  <td>✅ Anthropic, OpenAI, LangChain, etc.</td>
-  <td>❌</td>
-  <td>❌</td>
-  <td>❌</td>
+  <td>âœ… Anthropic, OpenAI, LangChain, etc.</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
+  <td>âŒ</td>
 </tr>
 </table>
 
 ---
 
-## 🔧 API Reference
+## ðŸ”§ API Reference
 
 ### `withHippocrates(handler, schema, redis, config?)`
 
 | Param | Type | Required | Default | Description |
 |-------|------|:--------:|---------|-------------|
-| `handler` | `(req: NextRequest) => Promise<NextResponse>` | ✅ | — | Your route handler |
-| `schema` | `ZodType<T>` | ✅ | — | Zod schema with `.strict()` |
-| `redis` | `RedisClient` | ✅ | — | Upstash / ioredis compatible client |
-| `config` | `HippocratesConfig` | ❌ | `See below` | Optional overrides |
+| `handler` | `(req: NextRequest) => Promise<NextResponse>` | âœ… | â€” | Your route handler |
+| `schema` | `ZodType<T>` | âœ… | â€” | Zod schema with `.strict()` |
+| `redis` | `RedisClient` | âœ… | â€” | Upstash / ioredis compatible client |
+| `config` | `HippocratesConfig` | âŒ | `See below` | Optional overrides |
 
 ### Config Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `threatScoreThreshold` | `number` | `65` | Score (0–100) that triggers honeypot |
+| `threatScoreThreshold` | `number` | `65` | Score (0â€“100) that triggers honeypot |
 | `velocityWindowMs` | `number` | `10_000` | Velocity tracking window in ms |
 | `velocityMaxRequests` | `number` | `15` | Max requests per velocity window |
 | `threatTtlSeconds` | `number` | `3_600` | TTL for Redis threat keys |
 | `debugMode` | `boolean` | `false` | Enable security logging |
 | `decoyGenerator` | `(req) => object` | Built-in | Custom decoy response generator |
-| `scoring` | `Partial<ThreatScoringWeights>` | — | Per-endpoint weight overrides |
+| `scoring` | `Partial<ThreatScoringWeights>` | â€” | Per-endpoint weight overrides |
 
 ### Redis Key Schema
 
 | Key | Purpose | TTL |
 |-----|---------|:---:|
-| `hc:s:{ip}` | Cumulative threat score (0–100) | `threatTtlSeconds` (3600s) |
+| `hc:s:{ip}` | Cumulative threat score (0â€“100) | `threatTtlSeconds` (3600s) |
 | `hc:t:{ip}` | Request timestamp list for velocity | `velocityWindowMs + 10s` |
 | `hc:l:{ip}` | Last-seen timestamp for timing | 300s |
 
 ---
 
-## 🎯 Use Cases
+## ðŸŽ¯ Use Cases
 
 | Scenario | Why Hippocrates |
 |----------|----------------|
-| **🏢 SaaS APIs** | Protect B2B/B2C API endpoints from LLM-powered scraping agents extracting your data |
-| **🤖 AI Startups** | Prevent competitors from extracting your model's training data via API probes |
-| **🛒 E-commerce** | Block automated pricing bots and inventory scrapers from harvesting product data |
-| **👥 Social Platforms** | Detect and shadow-ban bot networks that probe user data or scrape profiles |
-| **🏦 Financial Services** | Protect account endpoints from automated credential stuffing and enumeration attacks |
+| **ðŸ¢ SaaS APIs** | Protect B2B/B2C API endpoints from LLM-powered scraping agents extracting your data |
+| **ðŸ¤– AI Startups** | Prevent competitors from extracting your model's training data via API probes |
+| **ðŸ›’ E-commerce** | Block automated pricing bots and inventory scrapers from harvesting product data |
+| **ðŸ‘¥ Social Platforms** | Detect and shadow-ban bot networks that probe user data or scrape profiles |
+| **ðŸ¦ Financial Services** | Protect account endpoints from automated credential stuffing and enumeration attacks |
 
 ---
 
-## 🧪 Testing
+## ðŸ§ª Testing
 
 ```bash
-npm test                 # 123 tests across 6 files — all pass
-npm run typecheck        # tsc --noEmit — zero errors
-npm run lint             # ESLint flat config — zero errors
+npm test                 # 143 tests across 8 files â€” all pass
+npm run typecheck        # tsc --noEmit â€” zero errors
+npm run lint             # ESLint flat config â€” zero errors
 ```
 
 Hippocrates is fully tested with **Vitest**, covering all defense layers, the decoy system, Redis interactions, IPv6 normalization, recursive `.strict()` enforcement, and integration scenarios.
 
 ---
 
-## 🤝 Contributing
+## ðŸ¤ Contributing
 
 We're actively looking for contributions in these areas:
 
-- 🐛 **Bug reports** — Found an edge case? Open an issue
-- 🤖 **New UA patterns** — Missing an AI agent framework? [Add it](SKILL.md#adding-a-new-user-agent-pattern-most-common-task)
-- 🔍 **New obfuscation patterns** — See [SKILL.md](SKILL.md#new-obfuscation-pattern)
-- ⚡ **New defense layers** — Architecture guidance in [CLAUDE.md](CLAUDE.md#how-to-extend-the-library)
-- 📖 **Documentation** — Better docs = better adoption
+- ðŸ› **Bug reports** â€” Found an edge case? Open an issue
+- ðŸ¤– **New UA patterns** â€” Missing an AI agent framework? [Add it](SKILL.md#adding-a-new-user-agent-pattern-most-common-task)
+- ðŸ” **New obfuscation patterns** â€” See [SKILL.md](SKILL.md#new-obfuscation-pattern)
+- âš¡ **New defense layers** â€” Architecture guidance in [CLAUDE.md](CLAUDE.md#how-to-extend-the-library)
+- ðŸ“– **Documentation** â€” Better docs = better adoption
 
 ### Development
 
@@ -459,7 +459,7 @@ npm run test:watch       # TDD mode
 
 ---
 
-## 📦 Built With
+## ðŸ“¦ Built With
 
 <p align="center">
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/></a>
@@ -472,7 +472,7 @@ npm run test:watch       # TDD mode
 
 ---
 
-## 📈 Star History
+## ðŸ“ˆ Star History
 
 <p align="center">
   <a href="https://star-history.com/#achmdfzn/hippocrates&Timeline">
@@ -483,12 +483,12 @@ npm run test:watch       # TDD mode
     </picture>
   </a>
   <br/>
-  <sub>⭐ Star the repo to show support and help others discover Hippocrates!</sub>
+  <sub>â­ Star the repo to show support and help others discover Hippocrates!</sub>
 </p>
 
 ---
 
-## ☕ Support
+## â˜• Support
 
 If Hippocrates helps protect your API, consider supporting development:
 
@@ -506,12 +506,13 @@ If Hippocrates helps protect your API, consider supporting development:
 
 ---
 
-## 📄 License
+## ðŸ“„ License
 
 <p align="center">
-  MIT © <a href="https://github.com/achmdfzn">achmdfzn</a>
+  MIT Â© <a href="https://github.com/achmdfzn">achmdfzn</a>
   <br/><br/>
-  <strong>First, do no harm — to your API.</strong>
+  <strong>First, do no harm â€” to your API.</strong>
   <br/>
   <sub>Built for the era where your API consumers might not be human.</sub>
 </p>
+
