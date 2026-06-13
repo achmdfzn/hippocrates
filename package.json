@@ -1,7 +1,7 @@
 {
   "name": "hippocrates-middleware",
-  "version": "1.7.4",
-  "description": "ðŸ©º Next.js security middleware â€” silent honeypot that destroys autonomous AI agents, LLM scrapers, and bots using Redis-backed stateful defense. No 403s, no 429s â€” just convincing fake data that wastes attacker compute. Built with Python ML engine for advanced threat detection.",
+  "version": "1.8.0",
+  "description": "Next.js security middleware with Redis-backed threat scoring, honeypot decoy routing, and Python ML engine for advanced detection.",
   "keywords": [
     "nextjs",
     "security",
@@ -60,9 +60,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "build:python": "cd engine-python && pip install -r requirements.txt -q && python -m pytest tests/ -v -q",
     "test:all": "npm test && npm run build:python",
-    "prepublishOnly": "npm run typecheck && npm run build && npm run build:python"
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "peerDependencies": {
     "next": ">=14.0.0",
