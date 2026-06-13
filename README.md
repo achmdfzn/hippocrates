@@ -36,6 +36,9 @@
   <a href="https://github.com/achmdfzn/hippocrates/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/achmdfzn/hippocrates/ci.yml?style=flat-square&logo=github&label=CI" alt="CI"/>
   </a>
+  <a href="https://github.com/achmdfzn/hippocrates/tree/master/engine-python">
+    <img src="https://img.shields.io/badge/Built%20with-Python-3776AB?style=flat-square&logo=python" alt="Built with Python"/>
+  </a>
   <a href="https://coveralls.io/github/achmdfzn/hippocrates">
     <img src="https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square" alt="Coverage"/>
   </a>
@@ -572,6 +575,7 @@ npm run test:watch       # TDD mode
   <a href="https://zod.dev/"><img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod"/></a>
   <a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest"/></a>
   <a href="https://tsup.egoist.dev/"><img src="https://img.shields.io/badge/tsup-000000?style=for-the-badge&logo=tsup&logoColor=white" alt="tsup"/></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
 </p>
 
 ---
