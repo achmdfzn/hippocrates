@@ -462,4 +462,23 @@ describe("ML engine integration — GET requests", () => {
     expect(lastRequestBody).not.toBeNull();
     expect((lastRequestBody as Record<string, unknown>).body_raw).toBeNull();
   });
+
+  it("handles non-JSON body without crashing", async () => {
+    const { wrapped, innerHandler } = createWrappedHandler();
+    const req = mockRequest({ body: "plain text body, not json at all" });
+    await wrapped(req);
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("survives repeated ML engine failures without crashing", async () => {
+    fetchMock.mockRejectedValue(new Error("ML engine down"));
+
+    const { wrapped, innerHandler } = createWrappedHandler();
+    for (let i = 0; i < 5; i++) {
+      const req = mockRequest();
+      await wrapped(req);
+    }
+
+    expect(innerHandler).toHaveBeenCalledTimes(5);
+  });
 });

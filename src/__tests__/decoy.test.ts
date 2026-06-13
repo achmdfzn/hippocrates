@@ -138,4 +138,17 @@ describe("serveHoneypot", () => {
     expect(decoyFn).toHaveBeenCalledTimes(1);
     expect(decoyFn).toHaveBeenCalledWith(req);
   });
+
+  it("uses violationMessages fallback when violationType key is missing but primaryViolation key exists", async () => {
+    const req = createMockRequest();
+    const decoyFn = () => ({ base: true });
+    const violationMessages = {
+      // Key matches full violation string (not the type prefix)
+      "obfuscation:base64": () => ({ custom: "fallback_worked" }),
+    };
+    const res = serveHoneypot(req, decoyFn, "1.2.3.4", 100, ["obfuscation:base64"], false, violationMessages);
+    const data = await res.json();
+    expect(data).toHaveProperty("custom", "fallback_worked");
+    expect(data).toHaveProperty("base", true);
+  });
 });

@@ -416,4 +416,20 @@ describe("ensureStrict", () => {
     });
     expect(ok.success).toBe(true);
   });
+
+  it("handles ZodMap schema without throwing", () => {
+    const schema = z.map(z.unknown(), z.string());
+    const strict = ensureStrict(schema);
+    expect(strict).toBeDefined();
+    const result = strict.safeParse(new Map([["key", "value"]]));
+    expect(result.success).toBe(true);
+  });
+
+  it("handles ZodSet schema without throwing", () => {
+    const schema = z.set(z.string());
+    const strict = ensureStrict(schema);
+    expect(strict).toBeDefined();
+    const result = strict.safeParse(new Set(["a", "b", "c"]));
+    expect(result.success).toBe(true);
+  });
 });

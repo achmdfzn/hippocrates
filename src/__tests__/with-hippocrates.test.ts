@@ -90,7 +90,7 @@ vi.mock("next/server", () => ({
 
 import { withHippocrates } from "../index";
 import { createMockRedis, TestSchema } from "./helpers";
-import type { HippocratesConfig } from "../index";
+import type { HippocratesConfig, HoneypotEvent, PassEvent } from "../index";
 
 beforeEach(() => {
   mockJson.mockReset();
@@ -1177,5 +1177,105 @@ describe("withHippocrates â€” v1.6 violation messages", () => {
     expect(innerHandler).not.toHaveBeenCalled();
     expect(capturedBody).toHaveProperty("error", "suspicious_payload");
     expect(capturedBody).toHaveProperty("code", "ERR_002");
+  });
+});
+
+// ── v1.5: Event hooks ──────────────────────────────────────────────────
+
+describe("withHippocrates — v1.5 event hooks", () => {
+  it("onHoneypot hook receives honeypot event data when threat >= threshold", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn();
+    const onHoneypot = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 30,
+      hooks: { onHoneypot },
+    });
+
+    // Extra field triggers L5 schema violation (+100) → score 100 ≥ 30 → honeypot
+    const req = mockRequest({
+      body: JSON.stringify({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        action: "read",
+        admin: true,
+      }),
+    });
+
+    await wrapped(req);
+
+    expect(innerHandler).not.toHaveBeenCalled();
+    expect(onHoneypot).toHaveBeenCalledTimes(1);
+
+    const event = onHoneypot.mock.calls[0][0] as HoneypotEvent;
+    expect(event.ip).toBe("127.0.0.1");
+    expect(event.requestId).toBeDefined();
+    expect(typeof event.requestId).toBe("string");
+    expect(event.score).toBeGreaterThanOrEqual(100);
+    expect(event.violations.length).toBeGreaterThan(0);
+    expect(event.violations.some((v: string) => v.includes("schema"))).toBe(true);
+    expect(event.decoyResponse).toBeDefined();
+  });
+
+  it("onPass hook receives pass event data for clean requests", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+    const onPass = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      hooks: { onPass },
+    });
+
+    const req = mockRequest({ ip: "1.2.3.4" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(onPass).toHaveBeenCalledTimes(1);
+
+    const event = onPass.mock.calls[0][0] as PassEvent;
+    expect(event.ip).toBe("1.2.3.4");
+    expect(event.requestId).toBeDefined();
+    expect(typeof event.requestId).toBe("string");
+    expect(event.score).toBe(0);
+  });
+});
+
+// ── Config edge cases ──────────────────────────────────────────────────
+
+describe("withHippocrates — config edge cases", () => {
+  it("handles invalid preset name without crashing", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      preset: "INVALID_PRESET_DOES_NOT_EXIST" as "strict",
+    });
+
+    const req = mockRequest();
+    await wrapped(req);
+    // Should not crash — handler called normally
+    expect(innerHandler).toHaveBeenCalledTimes(1);
   });
 });
