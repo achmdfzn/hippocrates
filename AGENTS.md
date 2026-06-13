@@ -155,16 +155,23 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config
-npm test               # Vitest (177 tests across 10 files)
+npm test               # Vitest (177 TS tests across 10 files)
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
 
-# Python ML engine
+# Python ML engine (39 tests: 31 analyzers + 8 API)
 cd engine-python && pip install -r requirements.txt && pytest -v
 
+# Full stack — all 216 tests + Docker build verification
+npm test && cd engine-python && pytest -v
+
 # Docker
-docker compose up --build
+docker compose up --build   # Redis + ML engine with healthchecks
 ```
+
+CI Pipeline (`.github/workflows/ci.yml`):
+- **quality**: lint → typecheck → test (npm test) → build on Node 18/20/22
+- **docker**: build ML engine image → healthcheck verify (Python sidecar + curl)
 
 ## PITFALLS & GOTCHAS
 

@@ -34,7 +34,7 @@
   "homepage": "https://github.com/achmdfzn/hippocrates#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/achmdfzn/hippocrates.git"
+    "url": "git+https://github.com/achmdfzn/hippocrates.git"
   },
   "funding": {
     "type": "github",
@@ -60,6 +60,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:all": "vitest run && cd engine-python && pip install -r requirements.txt -q && pytest -v",
     "prepublishOnly": "npm run typecheck && npm run build"
   },
   "peerDependencies": {

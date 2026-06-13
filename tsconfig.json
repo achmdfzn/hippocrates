@@ -15,8 +15,9 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "example", "src/__tests__"]
+  "exclude": ["node_modules", "dist", "src/__tests__"]
 }

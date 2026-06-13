@@ -254,9 +254,16 @@ npm run dev              # Watch mode
 npm run typecheck        # tsc --noEmit
 npm run lint             # ESLint
 npm test                 # Vitest (177 tests across 10 files)
+npm run prepublishOnly   # typecheck + build (runs automatically on npm publish)
+
+# Python ML engine (39 tests)
 cd engine-python
-pip install -r requirements.txt && pytest -v   # Python tests (analyzers + API)
-docker compose up --build                      # Full stack: Redis + ML engine
+pip install -r requirements.txt
+pytest -v                # 31 analyzer tests + 8 API tests
+
+# Full stack
+docker compose up --build   # Redis + ML engine (health-checked)
+npm test && cd engine-python && pytest -v   # All 216 tests
 ```
 
 ## Extending the Library

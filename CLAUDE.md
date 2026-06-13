@@ -158,14 +158,17 @@ npm run lint           # ESLint flat config v10 (eslint.config.mjs)
 npm test               # Vitest — 177 tests across 10 files
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
+npm run test:all       # TS tests + Python tests
 
-# Python ML engine
+# Python ML engine (full test suite: 39 tests)
 cd engine-python
 pip install -r requirements.txt
-pytest -v              # Python tests (analyzers + API)
+pytest -v              # Python tests (31 analyzers + 8 API)
+python -m pytest tests/ -v --cov  # With coverage
 
-# Docker
-docker compose up --build   # Start Redis + ML engine
+# Full stack
+docker compose up --build   # Redis + ML engine (health-checked)
+npm test && cd engine-python && pytest -v  # Run all 216 tests
 ```
 
 The build tool is `tsup`. Output goes to `dist/`. Never commit `dist/` — it is
@@ -487,6 +490,21 @@ Dockerfile via `apt-get`. Without it, `HEALTHCHECK --interval=5s` fails.
 Each is independently toggleable via `HIPPO_ML_ENABLE_*` env vars.
 
 ---
+
+## CI Pipeline
+
+GitHub Actions runs on push/PR to `main`:
+
+```
+quality (Node 18/20/22):
+  lint → typecheck → test (npm test) → build (tsup)
+
+docker:
+  build ML engine Docker image → healthcheck → verify container starts
+```
+
+The `docker` job builds `engine-python/Dockerfile` without push. It verifies
+the Python sidecar compiles, starts, and responds to `GET /health`.
 
 ## What This Library Does NOT Do
 
