@@ -4,7 +4,7 @@ description: "Next.js App Router security middleware — Strict Stateful Defense
 license: MIT
 metadata:
   author: hippocrates
-  version: "0.1.0"
+  version: "1.7.0"
 ---
 
 # Hippocrates Skill
@@ -36,25 +36,22 @@ The core loop: evaluate every incoming request against a cumulative Threat Score
 Incoming Request
       │
       ▼
+   L-1: IP allowlist? ──── YES? ──→ Forward to handler (skip all checks)
+      │ (no)
+      ▼
    L0: Pre-flight score check ──── score ≥ threshold? ──→ HONEYPOT (200 OK + fake data)
       │ (no)
       ▼
-   L1: Timing analysis ──── interval < 50ms? ──→ +25 pts
-      │
+   Pre-body analyzers (L1, L2, L3, L6 + custom AnalyzerPlugin)
+   Timing, velocity, UA, headers — check + accumulate score
+      │ score ≥ threshold?
+      ├──YES──→ HONEYPOT
+      │ (no)
       ▼
-   L2: Velocity check ──── req count > max in window? ──→ +40 pts
-      │
-      ▼
-   L3: User-Agent analysis ──── known agent UA? ──→ +15 pts
-      │
-      ▼
-   L4: Obfuscation scan ──── Base64/Hex in payload? ──→ +100 pts (instant max)
-      │
-      ▼
-   L5: Zod .strict() validation ──── schema violation? ──→ +100 pts (instant max)
-      │
-      ▼
-   Score gate ──── score ≥ threshold? ──→ HONEYPOT (200 OK + fake data)
+   Body parse → Post-body analyzers (L4, L5 + custom AnalyzerPlugin)
+   Obfuscation scan, Zod validation, ML engine sidecar
+      │ score ≥ threshold?
+      ├──YES──→ HONEYPOT
       │ (no)
       ▼
    PASS → forward clean, validated request to actual handler
@@ -93,17 +90,53 @@ export const POST = withHippocrates(handler, Schema, redis);
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `threatScoreThreshold` | `number` | `65` | Score (0-100) that triggers honeypot. Lower = stricter |
+| `preset` | `"strict" | "moderate" | "relaxed"` | — | One-liner tuning overrides all below |
+| `threatScoreThreshold` | `number` | `65` | Score (0–100) that triggers honeypot. Lower = stricter |
 | `velocityWindowMs` | `number` | `10_000` | Sliding window for velocity tracking |
 | `velocityMaxRequests` | `number` | `15` | Max requests per IP per velocity window |
 | `threatTtlSeconds` | `number` | `3_600` | How long flagged IPs stay flagged in Redis |
 | `debugMode` | `boolean` | `false` | Verbose logging (dev only) |
 | `decoyGenerator` | `function` | built-in | Custom decoy response generator |
 | `scoring` | `Partial<ThreatScoringWeights>` | — | Per-layer scoring overrides |
-| `enableStats` | `boolean` | `false` | Track request counts, honeypot triggers, score histograms |
-| `enablePreheal` | `boolean` | `false` | Non-destructive Redis reachability check on each request |
-| `csrfProtection` | `boolean` | `false` | Validate Origin/Referer headers against a whitelist |
-| `allowedOrigins` | `string[]` | `[]` | Origins permitted when `csrfProtection` is enabled |
+| `plugins` | `AnalyzerPlugin[]` | — | Custom detection analyzers (v1.5) |
+| `hooks` | `HippocratesHooks` | — | Event hooks for violation/pass/honeypot (v1.5) |
+| `allowlist` | `{ ips: string[] }` | — | Exact + CIDR IP bypass (v1.6) |
+| `bodyLimit` | `{ maxBytes, enabled }` | `{ maxBytes: 1MB, enabled: true }` | Payload size enforcement (v1.6) |
+| `methodThresholds` | `Partial<Record<string, number>>` | — | Per-HTTP-method threat threshold overrides (v1.6) |
+| `violationMessages` | `object` | — | Custom error messages per violation type (v1.6) |
+| `statsTracker` | `StatsTracker` | — | In-memory request stats interface (v1.6) |
+
+## Custom Analyzer Plugins (v1.5)
+
+```typescript
+const myAnalyzer: AnalyzerPlugin = {
+  name: "custom_check",
+  phase: "pre-body",      // "pre-body" | "post-body"
+  priority: 50,           // Lower runs first (built-in: L1=10, L2=20, L3=30, L6=40)
+  analyze(req, ctx) {
+    if (req.headers.get("x-custom") === "bad") {
+      return { score: 30, tags: ["custom:bad"] };
+    }
+    return { score: 0, tags: [] };
+  },
+};
+
+export const POST = withHippocrates(handler, schema, redis, {
+  plugins: [myAnalyzer],
+});
+```
+
+## Event Hooks (v1.5)
+
+```typescript
+export const POST = withHippocrates(handler, schema, redis, {
+  hooks: {
+    onViolation: (event) => console.log("Violation:", event),
+    onPass: (event) => /* forward to metrics */,
+    onHoneypot: (event) => /* alert security team */,
+  },
+});
+```
 
 ## Critical Invariants (NEVER Violate)
 
@@ -112,8 +145,56 @@ export const POST = withHippocrates(handler, Schema, redis);
 3. **Always use `.strict()`** on Zod schemas. Without it, unknown fields pass through silently.
 4. **Last-resort catch must never leak internals** — always return `{ error: "Internal Server Error" }` with status 500.
 5. **Config merging happens once** at HOF call time (`withHippocrates()`), not per request.
+6. **Never use `Buffer.from()`** — breaks Edge Runtime. Use `btoa()` instead.
+
+## ML Engine Plugin (v1.7)
+
+Hippocrates ships with an optional Python sidecar for ML-based threat detection:
+
+```typescript
+import { mlEnginePlugin } from "hippocrates";
+
+export const POST = withHippocrates(handler, schema, redis, {
+  plugins: [mlEnginePlugin({
+    baseUrl: "http://ml-engine:8000",
+    timeoutMs: 3000,
+    minScoreThreshold: 10,
+  })],
+});
+```
+
+The sidecar analyzes each request for:
+- **Prompt Injection** — DAN, jailbreak, system prompt hijack
+- **Advanced Obfuscation** — Shannon entropy, encoding chains
+- **Content Risk** — SQLi, XSS, path traversal, command injection
+
+Start the sidecar: `docker compose up -d`
+
+## Stats Tracker (v1.6)
+
+```typescript
+import { type StatsTracker } from "hippocrates";
+
+const tracker: StatsTracker = {
+  increment(counter) { /* forward to metrics */ },
+  getStats() { return { ... }; },
+  reset() {},
+};
+
+export const POST = withHippocrates(handler, schema, redis, {
+  statsTracker: tracker,
+});
+```
+
+Counters: `totalRequests`, `blockedByPreflight`, `blockedByTiming`, `blockedByVelocity`, `blockedByObfuscation`, `blockedBySchema`, `passedToHandler`, `honeypotServed`, `redisErrors`.
 
 ## Defense Layers Detail
+
+### L-1 — IP Allowlist (v1.6)
+Exact match + CIDR prefix (e.g. `10.0.0.0/8`). Trusted IPs bypass all checks entirely.
+
+### L0 — Pre-flight Check
+Looks up the IP's existing cumulative threat score in Redis. If ≥ threshold, instant honeypot.
 
 ### L1 — Timing Analysis
 Detects sub-human request intervals (< 50ms). Autonomous agents generate requests faster than any human could manually type and submit.
@@ -130,13 +211,18 @@ Recursively walks parsed payload and checks string values against Base64, Hex, U
 ### L5 — Zod Zero-Trust Validation
 Validates payload with Zod `.strict()`. Extra fields, wrong types, or coercion failures trigger instant max score.
 
+### L6 — Header Anomaly Detection
+Flags missing or wildcard Accept/Accept-Language/Accept-Encoding headers — signals non-browser HTTP clients.
+
 ## Redis Key Schema
 
 | Key | Purpose | TTL |
 |-----|---------|-----|
-| `hc:s:{ip}` | Cumulative threat score | `threatTtlSeconds` |
-| `hc:t:{ip}` | Request timestamp list (velocity) | `velocityWindowMs + 10s` |
+| `hc:s:{ip}` | Cumulative threat score (0–100) | `threatTtlSeconds` (default 3600s) |
+| `hc:t:{ip}` | Request timestamp list (velocity) | `ceil(windowMs/1000) + 10s` |
 | `hc:l:{ip}` | Last-seen timestamp (timing) | 300s (hardcoded) |
+
+Stats are in-memory only (via `StatsTracker` interface) — not stored in Redis.
 
 ## User-Agent Detection Coverage
 
@@ -147,6 +233,10 @@ Validates payload with Zod `.strict()`. Extra fields, wrong types, or coercion f
 **Headless browsers:** headlesschrome, playwright, puppeteer, selenium, cypress, phantomjs
 
 **Generic:** bot, spider, crawler, scraper
+
+**2026 AI Agents:** claudebot, claude-user, claude-searchbot, claude-code, cursor, cursoragent, perplexitybot, githubcopilot, opencode, windsurf
+
+*(40+ patterns total)*
 
 ## Honeypot Decoy Templates
 
@@ -159,11 +249,14 @@ Hippocrates ships with 4 rotating decoy response templates:
 ## Development Commands
 
 ```bash
-npm run build       # tsup → CJS + ESM + .d.ts
-npm run dev         # Watch mode
-npm run typecheck   # tsc --noEmit
-npm run lint        # ESLint
-npm test            # Vitest
+npm run build            # tsup → CJS + ESM + .d.ts
+npm run dev              # Watch mode
+npm run typecheck        # tsc --noEmit
+npm run lint             # ESLint
+npm test                 # Vitest (177 tests across 10 files)
+cd engine-python
+pip install -r requirements.txt && pytest -v   # Python tests (analyzers + API)
+docker compose up --build                      # Full stack: Redis + ML engine
 ```
 
 ## Extending the Library
@@ -195,4 +288,5 @@ Edit `generateDecoyResponse()` in `src/system/honeypot.ts`. Increment slot count
 - **`req.text()` consumes the body stream** — always re-serialize with `JSON.stringify(validatedBody)` on forwarded request
 - **`ThreatScoreEngine` constructed once per HOF call** — NOT per request. Holds no per-request state.
 - **Upstash vs ioredis API difference** — Upstash uses `{ ex: n }`, ioredis uses positional args. Use an adapter.
+- **Redis circuit breaker** — after 3 consecutive Redis errors, all checks degrade to safe defaults (score=0, not excessive). Recovers automatically after 30s cooldown.
 - **IPv6 normalization** is handled via `src/utils/ip.ts` — `::1` → `127.0.0.1`, `::ffff:x.x.x.x` → IPv4 extraction

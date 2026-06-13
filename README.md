@@ -146,11 +146,15 @@ Incoming Request
 | ⚡ **6 Defense Layers** | Timing, velocity, UA, obfuscation, schema, headers |
 | 🚀 **Edge-Ready** | Works on Vercel Edge Runtime, Node.js — zero `Buffer` usage |
 | 🔒 **Zero-Trust Validation** | Recursive `.strict()` on every nested Zod type |
-| 🤖 **AI Agent Detection** | 35+ patterns: OpenAI, Anthropic, LangChain, Playwright, 2026 agents |
+| 🤖 **AI Agent Detection** | 40+ patterns: OpenAI, Anthropic, LangChain, Playwright, 2026 agents |
 | 📪 **No Data Leakage** | Error messages intentionally vague — no schema details exposed |
 | 🛡️ **IP Allowlist** | Exact match + CIDR prefix for trusted IPs |
 | ⚙️ **Config Presets** | `strict`, `moderate`, `relaxed` — one-liner tuning |
-| 📊 **Stats Tracking** | In-memory counters for requests, honeypot hits, scores |
+| 🧩 **Plugin System** | Custom AnalyzerPlugin for any detection logic (v1.5) |
+| 🔔 **Event Hooks** | Monitor violations, passes, honeypot events (v1.5) |
+| 📊 **Stats Tracking** | In-memory counters via `StatsTracker` interface (v1.6) |
+| 🤖 **ML Engine** | Python sidecar for prompt injection & deep content scoring (v1.6) |
+| 🐳 **Docker Support** | One-command `docker compose up` with Redis + ML engine |
 
 ---
 
@@ -219,7 +223,6 @@ export const POST = withHippocrates(handler, Schema, redis, {
   // ── v1.6 features ──
   allowlist: { ips: ["10.0.0.0/8", "127.0.0.1"] },
   bodyLimit: { maxBytes: 524_288, enabled: true },
-  enableStats: true,
 });
 ```
 
@@ -294,17 +297,21 @@ export const POST = withHippocrates(handler, Schema, redis, {
 
 | Option | Type | Default | Description |
 |:-------|:-----|:--------|:------------|
-| `preset` | `"strict" | "moderate" | "relaxed"` | — | One-liner tuning (v1.6) |
+| `preset` | `"strict" | "moderate" | "relaxed"` | — | One-liner tuning (overrides all below) |
 | `threatScoreThreshold` | `number` | `65` | Score (0–100) that triggers honeypot |
 | `velocityWindowMs` | `number` | `10_000` | Sliding window for velocity tracking |
 | `velocityMaxRequests` | `number` | `15` | Max requests per window |
 | `threatTtlSeconds` | `number` | `3_600` | Redis TTL for threat keys |
-| `allowlist` | `{ ips: string[] }` | — | Exact + CIDR bypass (v1.6) |
-| `bodyLimit` | `{ maxBytes, enabled }` | `1MB` | Payload size enforcement (v1.6) |
-| `enableStats` | `boolean` | `false` | In-memory request stats (v1.6) |
-| `scoring` | `Partial<ThreatScoringWeights>` | — | Per-layer weight overrides |
+| `scoring` | `Partial<ThreatScoringWeights>` | `DEFAULT_WEIGHTS` | Per-layer weight overrides |
 | `decoyGenerator` | `(req) => object` | Built-in | Custom decoy response |
 | `debugMode` | `boolean` | `false` | Verbose security logging |
+| `plugins` | `AnalyzerPlugin[]` | — | Custom detection analyzers (v1.5) |
+| `hooks` | `HippocratesHooks` | — | Event hooks for violation/pass/honeypot (v1.5) |
+| `allowlist` | `{ ips: string[] }` | — | Exact + CIDR IP bypass (v1.6) |
+| `bodyLimit` | `{ maxBytes, enabled }` | `{ 1MB, enabled: true }` | Payload size enforcement (v1.6) |
+| `methodThresholds` | `Partial<Record<string, number>>` | — | Per-HTTP-method threshold overrides (v1.6) |
+| `violationMessages` | `object` | — | Custom honeypot messages per violation type (v1.6) |
+| `statsTracker` | `StatsTracker` | — | Consumer-provided stats interface for real-time metrics (v1.6) |
 
 ### Redis Key Layout
 
@@ -338,6 +345,181 @@ All templates include:
 
 ---
 
+## 🧩 Analyzer Plugin System
+
+Extend Hippocrates with custom detection logic using the `AnalyzerPlugin` interface. Plugins run in two phases:
+
+| Phase | When It Runs | Built-in Analyzers |
+|:------|:-------------|:-------------------|
+| **pre-body** | Before request body is parsed | L1 Timing, L2 Velocity, L3 UA, L6 Headers |
+| **post-body** | After body is parsed (has access to `context.bodyRaw`) | L4 Obfuscation, L5 Schema |
+
+```typescript
+import { type AnalyzerPlugin } from "hippocrates";
+
+const myAnalyzer: AnalyzerPlugin = {
+  name: "custom_check",
+  phase: "pre-body",
+  priority: 50,  // Lower = runs first (default: 100)
+  analyze(req, ctx) {
+    if (req.headers.get("x-custom") === "bad") {
+      return { score: 30, tags: ["custom:bad"] };
+    }
+    return { score: 0, tags: [] };
+  },
+};
+
+export const POST = withHippocrates(handler, schema, redis, {
+  plugins: [myAnalyzer],
+});
+```
+
+---
+
+## 🔔 Event Hooks
+
+Monitor security events in real-time with `onViolation`, `onPass`, and `onHoneypot` callbacks:
+
+```typescript
+export const POST = withHippocrates(handler, schema, redis, {
+  hooks: {
+    onViolation: (event) => {
+      console.log(`Violation: ${event.ip} — ${event.violations}`);
+    },
+    onPass: (event) => {
+      metrics.recordPass(event.ip, event.score);
+    },
+    onHoneypot: (event) => {
+      alertService.notify(`Honeypot served: ${event.ip}`);
+    },
+  },
+});
+```
+
+---
+
+## 📊 Stats Tracking
+
+Hippocrates maintains built-in in-memory counters for all security events. Access them via `ThreatScoreEngine.getStats()` or provide a custom `StatsTracker`:
+
+```typescript
+import { type StatsTracker } from "hippocrates";
+
+const tracker: StatsTracker = {
+  increment(counter) {
+    console.log(`Event: ${counter}`);
+  },
+  getStats() {
+    return { totalRequests: 0, blockedByPreflight: 0, /* ... */ };
+  },
+  reset() {},
+};
+
+export const POST = withHippocrates(handler, schema, redis, {
+  statsTracker: tracker,
+});
+```
+
+Available counters: `totalRequests`, `blockedByPreflight`, `blockedByTiming`, `blockedByVelocity`, `blockedByObfuscation`, `blockedBySchema`, `passedToHandler`, `honeypotServed`, `redisErrors`.
+
+---
+
+## 🤖 ML Engine Integration
+
+Hippocrates ships with an optional **Python sidecar** for ML-based threat detection (prompt injection, advanced obfuscation, content risk scoring).
+
+### Architecture
+
+```
+┌──────────────┐     ┌──────────────┐     ┌───────────┐
+│  Hippocrates │────►│  ML Engine   │────►│   Redis   │
+│  (Next.js)   │     │  (FastAPI)   │     │ (Upstash) │
+└──────────────┘     └──────────────┘     └───────────┘
+       │                    │
+       │  POST /analyze     │
+       │  { body_raw, ... } │
+       └────────────────────┘
+```
+
+### Quick Start
+
+```bash
+# Start both Redis and ML engine
+docker compose up -d
+
+# ML engine is now available at http://localhost:8000
+```
+
+### Register the plugin in your handler:
+
+```typescript
+import { mlEnginePlugin } from "hippocrates";
+
+export const POST = withHippocrates(handler, schema, redis, {
+  plugins: [mlEnginePlugin({
+    baseUrl: "http://ml-engine:8000", // Docker service name
+    timeoutMs: 3000,
+    minScoreThreshold: 10,
+  })],
+});
+```
+
+### How It Works
+
+1. After body parsing (post-body phase), the pipeline sends the raw request body to the ML engine
+2. The ML engine runs prompt injection detection, obfuscation scoring, and content risk analysis
+3. Results contribute to the cumulative threat score
+4. If the ML engine is unreachable, it degrades gracefully (score = 0, no crash)
+
+### Configuration
+
+| Option | Default | Description |
+|:-------|:--------|:------------|
+| `baseUrl` | `http://localhost:8000` | ML engine endpoint |
+| `timeoutMs` | `3000` | Request timeout before fallback |
+| `minScoreThreshold` | `10` | Minimum ML score to contribute to threat score |
+
+---
+
+## 🐳 Docker Deployment
+
+Run the full Hippocrates stack with a single command:
+
+```yaml
+# docker-compose.yml (included in the package)
+services:
+  hippocrates-ml-engine:
+    build: ./engine-python
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+```
+
+```bash
+# Start services
+docker compose up -d
+
+# Run smoke test
+powershell -File engine-python/smoke-test.ps1
+```
+
+The ML engine runs on `python:3.12-slim` with FastAPI + httpx. The Docker build is verified in CI via GitHub Actions.
+
+---
+
 ## 🌟 Use Cases
 
 | Scenario | Why Hippocrates |
@@ -353,7 +535,7 @@ All templates include:
 ## 🧪 Testing
 
 ```bash
-npm test                 # 143 tests across 8 files — all pass
+npm test                 # 177 tests across 10 files — all pass
 npm run typecheck        # tsc --noEmit — zero errors
 npm run lint             # ESLint flat config — zero errors
 npm run build            # tsup → CJS + ESM + .d.ts
