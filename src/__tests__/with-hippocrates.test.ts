@@ -8,9 +8,37 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Hoisted mockJson â€” vi.mock is hoisted to top, so any variable it references
 // must be defined with vi.hoisted() to exist in the hoisted scope.
-const { mockJson } = vi.hoisted(() => ({
-  mockJson: vi.fn(),
-}));
+const { mockJson } = vi.hoisted(() => {
+  function makeHeaders() {
+    const _h: Record<string, string> = {};
+    return {
+      get: (n: string) => _h[n.toLowerCase()] ?? null,
+      set: (n: string, v: string) => { _h[n.toLowerCase()] = v; },
+      delete: (n: string) => { delete _h[n.toLowerCase()]; },
+      has: (n: string) => _h[n.toLowerCase()] !== undefined,
+      forEach: (cb: (v: string, k: string) => void) => Object.entries(_h).forEach(([k, v]) => cb(v, k)),
+    };
+  }
+  const mock = vi.fn();
+  // Override mockImplementation to wrap every call with headers
+  const origImpl = mock.mockImplementation.bind(mock);
+  mock.mockImplementation = (fn: (...args: unknown[]) => unknown) => {
+    return origImpl((body: unknown, init?: { status?: number }) => {
+      const result = fn(body, init) as Record<string, unknown>;
+      if (!result.headers) {
+        result.headers = makeHeaders();
+      }
+      return result;
+    });
+  };
+  // Set the default implementation
+  mock.mockImplementation((body: unknown, init?: { status?: number }) => ({
+    status: init?.status ?? 200,
+    body,
+    json: async () => body,
+  }));
+  return { mockJson: mock };
+});
 
 vi.mock("next/server", () => ({
   NextRequest: class MockNextRequest {
@@ -66,6 +94,12 @@ import type { HippocratesConfig } from "../index";
 
 beforeEach(() => {
   mockJson.mockReset();
+  // Re-apply default implementation (mockReset clears it)
+  mockJson.mockImplementation((body, init) => ({
+    status: init?.status ?? 200,
+    body,
+    json: async () => body,
+  }));
 });
 
 /**
@@ -799,6 +833,149 @@ describe("withHippocrates â€” v1.6 IP allowlist", () => {
 
     expect(innerHandler).toHaveBeenCalledTimes(1); // Bypassed
   });
+
+  // ── CIDR range matching tests ─────────────────────────────────
+
+  it("CIDR /8 matches IP within range", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:10.1.2.3", "100"); // Max score
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.0/8"] },
+    });
+
+    const req = mockRequest({ ip: "10.1.2.3" });
+    await wrapped(req);
+
+    // 10.1.2.3 is within 10.0.0.0/8 → bypass
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("CIDR /16 matches IP within range", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:192.168.1.100", "100");
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["192.168.0.0/16"] },
+    });
+
+    const req = mockRequest({ ip: "192.168.1.100" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("CIDR /8 does NOT match IP outside range", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:11.0.0.1", "100"); // Max score
+
+    const innerHandler = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.0/8"] },
+    });
+
+    const req = mockRequest({ ip: "11.0.0.1" });
+    await wrapped(req);
+
+    // 11.0.0.1 is OUTSIDE 10.0.0.0/8 → not bypassed, high score → honeypot
+    expect(innerHandler).not.toHaveBeenCalled();
+  });
+
+  it("CIDR /32 equals exact match", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:10.0.0.0", "100");
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.0/32"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.0" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("CIDR /0 matches any IP", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:8.8.8.8", "100");
+
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { allowed: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["0.0.0.0/0"] },
+    });
+
+    const req = mockRequest({ ip: "8.8.8.8" });
+    await wrapped(req);
+
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalid CIDR /33 does not crash and does not match", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client, store } = createMockRedis();
+    store.set("hc:s:10.0.0.1", "100");
+
+    const innerHandler = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.0/33"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    await wrapped(req);
+
+    // /33 is invalid, should not match → honeypot
+    expect(innerHandler).not.toHaveBeenCalled();
+  });
 });
 
 // â”€â”€ v1.6: Body size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -940,11 +1117,11 @@ describe("withHippocrates â€” v1.6 config presets", () => {
 
 describe("withHippocrates â€” v1.6 violation messages", () => {
   it("custom violation message overrides decoy for schema violations", async () => {
-    mockJson.mockImplementation((body, init) => ({
-      status: init?.status ?? 200,
-      body,
-      json: async () => body,
-    }));
+    let capturedBody: unknown = null;
+    mockJson.mockImplementation((body, init) => {
+      capturedBody = body;
+      return { status: init?.status ?? 200, json: async () => body };
+    });
 
     const { client } = createMockRedis();
     const innerHandler = vi.fn();
@@ -966,5 +1143,39 @@ describe("withHippocrates â€” v1.6 violation messages", () => {
 
     await wrapped(req);
     expect(innerHandler).not.toHaveBeenCalled();
+    // Verify custom violation message was applied to response body
+    expect(capturedBody).toHaveProperty("error", "invalid_data");
+    expect(capturedBody).toHaveProperty("code", "ERR_001");
+  });
+
+  it("custom violation message overrides decoy for obfuscation violations", async () => {
+    let capturedBody: unknown = null;
+    mockJson.mockImplementation((body, init) => {
+      capturedBody = body;
+      return { status: init?.status ?? 200, json: async () => body };
+    });
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn();
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      violationMessages: {
+        obfuscation: (_v) => ({ error: "suspicious_payload", code: "ERR_002" }),
+      },
+    });
+
+    const req = mockRequest({
+      body: JSON.stringify({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        action: "read",
+        data: "SGVsbG8gV29ybGQgVGhpcyBpcyBhIEJhc2U2NCBlbmNvZGVkIHN0cmluZw==",
+      }),
+    });
+
+    await wrapped(req);
+    expect(innerHandler).not.toHaveBeenCalled();
+    expect(capturedBody).toHaveProperty("error", "suspicious_payload");
+    expect(capturedBody).toHaveProperty("code", "ERR_002");
   });
 });

@@ -132,8 +132,8 @@ export function serveHoneypot(
   let body = decoyFn(req);
   // Apply custom violation message handler for the primary violation
   if (violationMessages && violations.length > 0) {
-            const primaryViolation = violations[0] as string;
-    const violationType = primaryViolation.split("(")[0] ?? primaryViolation;
+    const primaryViolation = violations[0] as string;
+    const violationType = primaryViolation.split(/[:(]/)[0] ?? primaryViolation;
     const customHandler = violationMessages[violationType]
       ?? violationMessages[primaryViolation];
     if (customHandler) {

@@ -149,7 +149,7 @@ export function ensureStrict<T>(schema: ZodType<T>): ZodType<T> {
     case "ZodDefault": {
       const inner = ensureStrict(def.innerType as z.ZodTypeAny);
       const dv = def.defaultValue as () => unknown;
-      return inner.default(dv()) as unknown as ZodType<T>;
+      return inner.default(dv) as unknown as ZodType<T>;
     }
 
     case "ZodReadonly": {
@@ -188,6 +188,18 @@ export function ensureStrict<T>(schema: ZodType<T>): ZodType<T> {
         schema as unknown as z.ZodBranded<z.ZodTypeAny, string>
       ).unwrap() as z.ZodTypeAny;
       return ensureStrict(inner).brand<string>() as unknown as ZodType<T>;
+    }
+
+    case "ZodMap": {
+      const mapSchema = schema as unknown as z.ZodMap<z.ZodTypeAny, z.ZodTypeAny>;
+      const valueType = mapSchema._def.valueType as z.ZodTypeAny;
+      return z.map(z.unknown(), ensureStrict(valueType)) as unknown as ZodType<T>;
+    }
+
+    case "ZodSet": {
+      const setSchema = schema as unknown as z.ZodSet<z.ZodTypeAny>;
+      const valueType = setSchema._def.valueType as z.ZodTypeAny;
+      return z.set(ensureStrict(valueType)) as unknown as ZodType<T>;
     }
 
     default:

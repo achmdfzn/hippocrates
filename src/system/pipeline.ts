@@ -41,8 +41,16 @@ export class HippocratesPipeline {
     redis: RedisClient,
     config: HippocratesConfig = {}
   ) {
-    // Merge config once at setup time — never per request
-    this.cfg = { ...DEFAULTS, ...config };
+    // Deep-merge config once at setup time — never per request
+    // bodyLimit uses explicit deep merge so partial user overrides (e.g. { maxBytes })
+    // still inherit defaults for unspecified fields (e.g. enabled).
+    this.cfg = {
+      ...DEFAULTS,
+      ...config,
+      bodyLimit: config.bodyLimit
+        ? { ...DEFAULT_BODY_LIMIT, ...config.bodyLimit }
+        : DEFAULT_BODY_LIMIT,
+    };
     this.weights = { ...DEFAULT_WEIGHTS, ...(config.scoring ?? {}) };
     this.decoyFn = config.decoyGenerator ?? generateDecoyResponse;
     this.strictSchema = ensureStrict(schema) as ZodType<Record<string, unknown>>;
@@ -57,14 +65,33 @@ export class HippocratesPipeline {
     const violations: string[] = [];
     let score = 0;
     try {
+      this.engine.incrementStats("totalRequests");
+
       // ── L-1: IP allowlist (v1.6) ──────────────────────────────
       if (this.cfg.allowlist && await this.isIpAllowed(ip)) {
         // Skip all security checks, forward directly to handler
-        return await this.forwardToHandler(req, ip, 0, requestId, null);
+        // Read body for non-GET requests so POST/PUT/PATCH body isn't lost
+        let allowlistBody: Record<string, unknown> | null = null;
+        if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+          try {
+            const text = await req.text();
+            if (text) {
+              const parsed = JSON.parse(text);
+              if (typeof parsed === "object" && parsed !== null) {
+                allowlistBody = parsed as Record<string, unknown>;
+              }
+            }
+          } catch {
+            // Body not available or not parseable — forward without body
+          }
+        }
+        return await this.forwardToHandler(req, ip, 0, requestId, allowlistBody);
       }
       // ── L0: Pre-flight ───────────────────────────────────────
       score = await this.engine.getScore(ip);
       if (score >= this.getEffectiveThreshold(req.method)) {
+        this.engine.incrementStats("blockedByPreflight");
+        this.engine.incrementStats("honeypotServed");
         return this.sendToHoneypot(req, ip, score, ["preflight_block"], requestId);
       }
       // ── Pre-body analyzers (L1, L2, L3, L6 + custom) ─────────
@@ -73,6 +100,7 @@ export class HippocratesPipeline {
       violations.push(...preBodyResult.violations);
       // ── Mid-flight score gate ─────────────────────────────────
       if (score >= this.getEffectiveThreshold(req.method)) {
+        this.engine.incrementStats("honeypotServed");
         return this.sendToHoneypot(req, ip, score, violations, requestId);
       }
       // ── Body parsing + Post-body analyzers (L4, L5 + custom) ─
@@ -81,9 +109,11 @@ export class HippocratesPipeline {
       violations.push(...bodyResult.violations);
       // ── Final score gate ──────────────────────────────────────
       if (score >= this.getEffectiveThreshold(req.method)) {
+        this.engine.incrementStats("honeypotServed");
         return this.sendToHoneypot(req, ip, score, violations, requestId);
       }
       // ── PASS: Forward to handler ──────────────────────────────
+      this.engine.incrementStats("passedToHandler");
       return await this.forwardToHandler(req, ip, score, requestId, bodyResult.validatedBody);
     } catch (err) {
       if (this.cfg.debugMode) {
@@ -101,21 +131,43 @@ export class HippocratesPipeline {
     if (!allowlist?.ips.length) return false;
     // Exact match first
     if (allowlist.ips.includes(ip)) return true;
-    // CIDR prefix match
+    // CIDR prefix match using proper bitwise comparison
     for (const entry of allowlist.ips) {
       if (entry.includes("/")) {
         const parts = entry.split("/");
-        const prefix = parts[0];
+        const cidrIp = parts[0];
         const bits = parts[1];
-        if (prefix && bits) {
+        if (cidrIp && bits) {
           const maskLen = parseInt(bits, 10);
-          if (maskLen > 0 && ip.startsWith(prefix.substring(0, maskLen))) {
+          if (!isNaN(maskLen) && maskLen >= 0 && maskLen <= 32 && this.isIpInCidr(ip, cidrIp, maskLen)) {
             return true;
           }
         }
       }
     }
     return false;
+  }
+
+  /** Convert dotted IPv4 string to 32-bit unsigned integer. */
+  private ipToInt(ip: string): number | null {
+    const parts = ip.split(".");
+    if (parts.length !== 4) return null;
+    let result = 0;
+    for (const part of parts) {
+      const octet = parseInt(part, 10);
+      if (isNaN(octet) || octet < 0 || octet > 255) return null;
+      result = (result << 8) + octet;
+    }
+    return result >>> 0;
+  }
+
+  /** Check if an IP falls within a CIDR range using bitwise mask comparison. */
+  private isIpInCidr(ip: string, cidrIp: string, maskLen: number): boolean {
+    const ipInt = this.ipToInt(ip);
+    const cidrInt = this.ipToInt(cidrIp);
+    if (ipInt === null || cidrInt === null) return false;
+    const mask = ~(0xFFFFFFFF >>> maskLen) >>> 0;
+    return (ipInt & mask) === (cidrInt & mask);
   }
   private getEffectiveThreshold(method: string): number {
     const base = this.cfg.threatScoreThreshold ?? DEFAULTS.threatScoreThreshold;
@@ -140,6 +192,7 @@ export class HippocratesPipeline {
       violations.push(tag);
       score += this.weights.impossibleTiming;
       await this.engine.addScore(ip, this.weights.impossibleTiming, tag);
+      this.engine.incrementStats("blockedByTiming");
     }
     // L2: Velocity analysis (Redis state — runs directly on engine)
     const velocity = await this.engine.analyzeVelocity(ip);
@@ -148,6 +201,7 @@ export class HippocratesPipeline {
       violations.push(tag);
       score += this.weights.velocityViolation;
       await this.engine.addScore(ip, this.weights.velocityViolation, tag);
+      this.engine.incrementStats("blockedByVelocity");
     }
     // L3: User-Agent fingerprinting
     const ua = this.engine.analyzeUserAgent(req.headers.get("user-agent"));
@@ -187,7 +241,7 @@ export class HippocratesPipeline {
       return { score: pluginResult.score, violations: pluginResult.violations, validatedBody: null };
     }
     // Body size limit check (v1.6) — check content-length header first
-    const bodyLimit = this.cfg.bodyLimit ?? DEFAULT_BODY_LIMIT;
+    const bodyLimit = this.cfg.bodyLimit as { maxBytes: number; enabled: boolean };
     if (bodyLimit.enabled) {
       const contentLength = req.headers.get("content-length");
       if (contentLength && parseInt(contentLength, 10) > bodyLimit.maxBytes) {
@@ -217,7 +271,7 @@ export class HippocratesPipeline {
       score += this.weights.nonJsonBody;
       await this.engine.addScore(ip, this.weights.nonJsonBody, "non_json_body");
       // Still run post-body custom analyzers even without valid body
-      const ctx = this.makeContext(ip, requestId);
+      const ctx = this.makeContext(ip, requestId, rawText);
       const pluginResult = await this.engine.runAnalyzers(req, ctx, "post-body");
       return {
         score: score + pluginResult.score,
@@ -235,6 +289,7 @@ export class HippocratesPipeline {
         violations.push(tag);
         score += this.weights.obfuscationDetected;
         await this.engine.addScore(ip, this.weights.obfuscationDetected, tag);
+        this.engine.incrementStats("blockedByObfuscation");
       }
       // L5: Zod validation (skip if already over threshold)
       const threshold = this.getEffectiveThreshold(req.method);
@@ -249,11 +304,14 @@ export class HippocratesPipeline {
             : this.weights.nonJsonBody;
           score += pts;
           await this.engine.addScore(ip, pts, "schema_violation");
+          if (result.isSchemaViolation) {
+            this.engine.incrementStats("blockedBySchema");
+          }
         }
       }
     }
     // Custom post-body analyzers from plugins
-    const ctx = this.makeContext(ip, requestId);
+    const ctx = this.makeContext(ip, requestId, rawText);
     const pluginResult = await this.engine.runAnalyzers(req, ctx, "post-body");
     score += pluginResult.score;
     violations.push(...pluginResult.violations);
@@ -315,13 +373,14 @@ export class HippocratesPipeline {
     return await this.handler(cleanReq);
   }
   // ── Context builder ───────────────────────────────────────────
-  private makeContext(ip: string, requestId: string): AnalysisContext {
+  private makeContext(ip: string, requestId: string, bodyRaw?: string): AnalysisContext {
     return {
       ip,
       requestId,
       engine: this.engine,
       config: this.cfg,
       weights: this.weights,
+      ...(bodyRaw !== undefined ? { bodyRaw } : {}),
     };
   }
 }

@@ -80,11 +80,55 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
 
   // ── Redis graceful degradation ───────────────────────────────────
 
+  /** Timestamp (ms) when circuit breaker tripped — used for automatic recovery. */
+  private circuitBreakerTrippedAt = 0;
+  /** Cooldown in ms before attempting Redis recovery (30 seconds). */
+  private readonly CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
+
+  /**
+   * Check if Redis is currently healthy.
+   * If circuit breaker is tripped but cooldown has elapsed, attempt recovery
+   * by running a lightweight Redis operation.
+   */
+  private async checkRedisHealth(): Promise<boolean> {
+    if (this.redisHealthy) return true;
+
+    const elapsed = Date.now() - this.circuitBreakerTrippedAt;
+    if (elapsed < this.CIRCUIT_BREAKER_COOLDOWN_MS) {
+      return false; // Still in cooldown
+    }
+
+    // Attempt recovery with a lightweight Redis ping
+    try {
+      // Use a no-op set with 1-second TTL to verify Redis is reachable
+      await this.redis.set("hc:ping", "1", { ex: 1 });
+      // Recovery successful — reset circuit breaker
+      this.redisHealthy = true;
+      this.redisErrors = 0;
+      this.circuitBreakerTrippedAt = 0;
+      if (this.config.debugMode) {
+        console.log("[hc:redis] Circuit breaker reset — Redis is reachable again");
+      }
+      return true;
+    } catch {
+      // Still down — update timestamp so we don't retry every request
+      this.circuitBreakerTrippedAt = Date.now();
+      return false;
+    }
+  }
+
   private handleRedisError(context: string): void {
+    // Don't double-count errors once circuit breaker is already open
+    if (!this.redisHealthy) return;
+
     this.redisErrors++;
     this.stats.redisErrors++;
     if (this.redisErrors >= this.MAX_REDIS_ERRORS) {
       this.redisHealthy = false;
+      this.circuitBreakerTrippedAt = Date.now();
+      if (this.config.debugMode) {
+        console.warn(`[hc:redis] Circuit breaker TRIPPED after ${this.MAX_REDIS_ERRORS} errors`);
+      }
     }
     if (this.config.debugMode) {
       console.warn(`[hc:redis] Error in ${context} (${this.redisErrors}/${this.MAX_REDIS_ERRORS})`);
@@ -141,13 +185,13 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
           score += result.score;
           violations.push(...result.tags);
 
-          // Fire hooks for violation events
+          // Fire hooks for violation events — only pass current plugin's tags
           if (this.config.hooks?.onViolation) {
             this.config.hooks.onViolation({
               ip: context.ip,
               requestId: context.requestId,
               score,
-              violations,
+              violations: result.tags,
               analyzerName: plugin.name,
             });
           }
@@ -166,7 +210,7 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
 
   async getScore(ip: string): Promise<number> {
     try {
-      if (!this.redisHealthy) return 0;
+      if (!await this.checkRedisHealth()) return 0;
       const raw = await this.redis.get(this.kScore(ip));
       return raw !== null ? Math.min(100, parseInt(raw, 10)) : 0;
     } catch {
@@ -202,6 +246,9 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
     isAnomalous: boolean;
     intervalMs: number;
   }> {
+    if (!await this.checkRedisHealth()) {
+      return { isAnomalous: false, intervalMs: Infinity };
+    }
     try {
       const now = Date.now();
       const key = this.kLastSeen(ip);
@@ -230,6 +277,9 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
     isExcessive: boolean;
     requestCount: number;
   }> {
+    if (!await this.checkRedisHealth()) {
+      return { isExcessive: false, requestCount: 0 };
+    }
     try {
       const now = Date.now();
       const windowMs =
@@ -327,6 +377,8 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
 
   incrementStats(counter: keyof SecurityStats): void {
     this.stats[counter]++;
+    // Also forward to consumer-provided StatsTracker if configured
+    this.config.statsTracker?.increment(counter);
   }
 
   getStats(): SecurityStats {

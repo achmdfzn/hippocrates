@@ -174,6 +174,41 @@ describe("ensureStrict", () => {
     expect(withExtra.success).toBe(false);
   });
 
+  it("preserves dynamic ZodDefault functions (not frozen at construction time)", () => {
+    // Dynamic default that returns a new object each time
+    let callCount = 0;
+    const dynamicDefault = () => {
+      callCount++;
+      return { tag: `generated_${callCount}` };
+    };
+
+    const schema = z.object({
+      meta: z.object({ tag: z.string() }).default(dynamicDefault),
+    });
+    const strict = ensureStrict(schema);
+
+    // First parse without meta — should use dynamic default
+    const parse1 = strict.safeParse({});
+    expect(parse1.success).toBe(true);
+    if (parse1.success) {
+      expect(parse1.data.meta.tag).toBe("generated_1");
+    }
+
+    // Second parse without meta — should call dynamic default again
+    const parse2 = strict.safeParse({});
+    expect(parse2.success).toBe(true);
+    if (parse2.success) {
+      expect(parse2.data.meta.tag).toBe("generated_2");
+    }
+
+    // Each call should have incremented — proves default is not frozen
+    expect(callCount).toBe(2);
+
+    // Strict should still reject extra fields when value is provided
+    const withExtra = strict.safeParse({ meta: { tag: "x", extra: true } });
+    expect(withExtra.success).toBe(false);
+  });
+
   it("handles ZodReadonly wrapping an object", () => {
     const schema = z.object({
       meta: z.object({ tag: z.string() }).readonly(),
