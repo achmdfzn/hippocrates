@@ -37,3 +37,42 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('engine-python/Dockerfile', 'engine-python/requirements.txt', 'engine-python/app/**') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build ML engine Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: engine-python
+          file: engine-python/Dockerfile
+          push: false
+          load: true
+          tags: hippocrates/ml-engine:ci
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+
+      - name: Verify image exists
+        run: docker image inspect hippocrates/ml-engine:ci
+
+      - name: Test container starts and responds
+        run: |
+          docker run -d --name ml-ci -p 8000:8000 hippocrates/ml-engine:ci
+          sleep 3
+          curl -f http://localhost:8000/health
+          docker stop ml-ci
+          docker rm ml-ci
