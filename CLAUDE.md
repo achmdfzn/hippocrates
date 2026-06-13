@@ -22,40 +22,63 @@ of the real handler. The attacker always receives a `200 OK` — never a `403` o
 ```
 hippocrates/
 ├── src/
-│   ├── index.ts                    # Entry point + HOF (221 lines, re-exports all modules)
+│   ├── index.ts                    # Entry point + HOF (242 lines, re-exports all modules)
 │   ├── engine/
-│   │   ├── types.ts                # Type definitions (279 lines)
-│   │   ├── constants.ts            # Defaults, UA patterns, obfuscation patterns (199 lines)
-│   │   ├── analyzers.ts            # Individual layer analyzers (97 lines)
-│   │   └── threat-score-engine.ts  # ThreatScoreEngine class (306 lines)
+│   │   ├── types.ts                # Type definitions (332 lines)
+│   │   ├── constants.ts            # Defaults, UA patterns, obfuscation patterns (218 lines)
+│   │   ├── analyzers.ts            # Plugin placeholders L1-L6 (112 lines)
+│   │   └── threat-score-engine.ts  # ThreatScoreEngine class (401 lines)
+│   ├── plugins/
+│   │   └── ml-engine.ts            # Python sidecar AnalyzerPlugin (152 lines)
 │   ├── system/
-│   │   ├── honeypot.ts             # Decoy, honeypot, stats, Redis degradation (152 lines)
-│   │   ├── pipeline.ts             # Pipeline orchestration (327 lines)
-│   │   └── validator.ts            # Zod validatePayload + ensureStrict (174 lines)
+│   │   ├── honeypot.ts             # Decoy, honeypot, Redis degradation (152 lines)
+│   │   ├── pipeline.ts             # Pipeline orchestration (386 lines)
+│   │   └── validator.ts            # Zod validatePayload + ensureStrict (206 lines)
 │   ├── utils/
-│   │   └── ip.ts                   # IPv6 normalization (90 lines)
+│   │   └── ip.ts                   # IPv6 normalization (102 lines)
 │   └── __tests__/
-│       ├── helpers.ts                          # Test mocks (Redis, NextRequest, NextResponse)
+│       ├── helpers.ts                          # Test mocks (159 lines)
 │       ├── ip.test.ts                          # 29 tests (IPv6 normalization)
 │       ├── threat-score-engine.test.ts          # 35 tests
 │       ├── validate-payload.test.ts             # 7 tests
 │       ├── decoy.test.ts                       # 9 tests
-│       ├── with-hippocrates.test.ts             # 30 tests
-│       ├── ensure-strict.test.ts                # 22 tests (recursive .strict())
+│       ├── with-hippocrates.test.ts             # 37 tests (integration — all layers)
+│       ├── ensure-strict.test.ts                # 23 tests (recursive .strict() + ZodMap/ZodSet)
 │       ├── redis-degradation.test.ts            # 6 tests (Redis fallback/circuit breaker)
-│       └── stats.test.ts                       # 5 tests (request statistics)
+│       ├── stats.test.ts                       # 5 tests (request statistics)
+│       ├── stats-integration.test.ts            # 13 tests (StatsTracker wiring all layers)
+│       └── ml-engine-integration.test.ts        # 13 tests (ML engine plugin integration)
+├── engine-python/
+│   ├── app/
+│   │   ├── main.py                 # FastAPI app — POST /analyze, GET /health (141 lines)
+│   │   ├── config.py               # Pydantic settings (HIPPO_ML_* env vars)
+│   │   ├── models.py               # AnalyzeRequest/Response Pydantic models
+│   │   └── analyzers/
+│   │       ├── __init__.py         # Exports PromptInjection, Obfuscation, ContentRisk
+│   │       ├── prompt_injection.py # Heuristic + entropy prompt injection detection
+│   │       ├── obfuscation_advanced.py  # Shannon entropy + transform chaining
+│   │       └── content_risk.py     # SQLi, XSS, path traversal, command injection
+│   ├── tests/
+│   │   ├── test_analyzers.py       # 225+ lines, unit tests for all 3 analyzers
+│   │   └── test_api.py             # 135+ lines, integration tests for /analyze, /health
+│   ├── Dockerfile                  # python:3.12-slim + curl + requirements
+│   ├── requirements.txt            # fastapi, uvicorn, pydantic, scikit-learn
+│   ├── pyproject.toml
+│   ├── smoke-test.ps1              # Docker Compose smoke test (healthchecks + analyze)
+│   └── README.md                   # ML engine standalone docs
 ├── example/
 │   └── app/api/data/route.ts  # Reference implementation
-├── .github/workflows/ci.yml   # GitHub Actions (lint → typecheck → test → build)
-├── eslint.config.mjs          # ESLint flat config v10
-├── package.json               # tsup build, peer deps (next, zod)
-├── tsconfig.json              # strict + exactOptionalPropertyTypes + noUncheckedIndexedAccess
-├── vitest.config.ts           # Vitest config (globals: true)
-├── SKILL.md                   # Loadable skill definition for OpenCode agents
-├── AGENTS.md                  # Hierarchical knowledge base
-├── CLAUDE.md                  # This file
-├── README.md                  # Public-facing documentation
-├── LICENSE                    # MIT
+├── docker-compose.yml        # Redis + ML engine, healthchecks, hippocrates-net
+├── .github/workflows/ci.yml  # GitHub Actions (lint → typecheck → test → build → docker)
+├── eslint.config.mjs         # ESLint flat config v10
+├── package.json              # tsup build, peer deps (next, zod)
+├── tsconfig.json             # strict + exactOptionalPropertyTypes + noUncheckedIndexedAccess
+├── vitest.config.ts          # Vitest config (globals: true)
+├── SKILL.md                  # Loadable skill definition for OpenCode agents
+├── AGENTS.md                 # Hierarchical knowledge base
+├── CLAUDE.md                 # This file
+├── README.md                 # Public-facing documentation
+├── LICENSE                   # MIT
 └── .gitignore
 ```
 
@@ -64,6 +87,7 @@ entry point (`hippocrates` / `src/index.ts`). No internal imports needed at the
 consumer level. Modules are separated by concern:
 - **`engine/`** — type definitions, constants, per-layer analyzers, and the scoring engine
 - **`system/`** — pipeline orchestration, honeypot/decoys, validation, stats, and Redis degradation
+- **`plugins/`** — optional AnalyzerPlugin implementations (ML engine Python sidecar)
 - **`utils/`** — IPv6 normalization utility
 
 ---
@@ -74,25 +98,26 @@ consumer level. Modules are separated by concern:
 Incoming Request
       │
       ▼
+   L-1: IP allowlist? ──── YES? ──→ Forward to handler (skip all checks)
+      │ (no)
+      ▼
    L0: Pre-flight score check ──── score ≥ threshold? ──→ HONEYPOT (200 OK + fake data)
       │ (no)
       ▼
+   Pre-body analyzers (L1, L2, L3, L6 + custom AnalyzerPlugin)
    L1: Timing analysis ──── interval < 50ms? ──→ +25 pts
-      │
-      ▼
    L2: Velocity check ──── req count > max in window? ──→ +40 pts
-      │
-      ▼
    L3: User-Agent analysis ──── known agent UA? ──→ +15 pts
-      │
+   L6: Header anomalies ──── missing/wildcard? ──→ +15 pts
+      │ score ≥ threshold?
+      ├──YES──→ HONEYPOT
+      │ (no)
       ▼
+   Body parse → post-body analyzers (L4, L5 + custom AnalyzerPlugin)
    L4: Obfuscation scan ──── Base64/Hex in payload? ──→ +100 pts (instant max)
-      │
-      ▼
    L5: Zod .strict() validation ──── schema violation? ──→ +100 pts (instant max)
-      │
-      ▼
-   Score gate ──── score ≥ threshold? ──→ HONEYPOT (200 OK + fake data)
+      │ score ≥ threshold?
+      ├──YES──→ HONEYPOT
       │ (no)
       ▼
    PASS → forward clean, validated request to actual handler
@@ -111,14 +136,15 @@ single responsibility and is independently testable.
 
 | Module | File | Responsibility |
 |--------|------|----------------|
-| Types | `src/engine/types.ts` | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AppRouteHandler`, `ValidationResult` |
-| Constants | `src/engine/constants.ts` | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS` (35+ entries), `OBFUSCATION_PATTERNS` (5), `HEADER_ANOMALY_PATTERNS` (4) |
-| Analyzers | `src/engine/analyzers.ts` | `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `detectObfuscation()`, `analyzeHeaders()` — pure functions, no Redis |
-| Engine | `src/engine/threat-score-engine.ts` | `ThreatScoreEngine` class — `getScore()`, `addScore()`, orchestrates analyzers with Redis |
-| Honeypot | `src/system/honeypot.ts` | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, `getStats()`, `resetStats()`, Redis degradation handling |
-| Pipeline | `src/system/pipeline.ts` | Pipeline orchestration — runs L0–L6 analyzers, builds `cleanReq`, manages `requestId` |
-| Validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` — Zod wrapper with vague errors + recursive `.strict()` |
-| Index | `src/index.ts` | Public API entry point — `withHippocrates()` HOF, `ensureStrict()`, `validatePayload()`, re-exports |
+| Types | `src/engine/types.ts` | `RedisClient`, `HippocratesConfig`, `ThreatScoringWeights`, `AnalyzerPlugin`, `HippocratesHooks`, `AllowlistConfig`, `SecurityStats`, `StatsTracker` |
+| Constants | `src/engine/constants.ts` | `DEFAULTS`, `DEFAULT_WEIGHTS`, `AGENT_UA_PATTERNS` (40+ entries), `OBFUSCATION_PATTERNS` (5), `HEADER_ANOMALY_PATTERNS` (4), `PRESETS`, `DEFAULT_BODY_LIMIT` |
+| Analyzers | `src/engine/analyzers.ts` | `timingAnalyzer`, `velocityAnalyzer`, `userAgentAnalyzer`, `obfuscationAnalyzer`, `schemaAnalyzer`, `headerAnalyzer`, `BUILT_IN_ANALYZERS` |
+| Engine | `src/engine/threat-score-engine.ts` | `ThreatScoreEngine` class — `getScore()`, `addScore()`, `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `analyzeHeaders()`, `detectObfuscation()`, `runAnalyzers()`, Redis circuit breaker (30s auto-recovery), in-memory stats |
+| ML Plugin | `src/plugins/ml-engine.ts` | `mlEnginePlugin()` factory — creates AnalyzerPlugin that POSTs to Python sidecar |
+| Honeypot | `src/system/honeypot.ts` | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, custom violation messages, Redis degradation |
+| Pipeline | `src/system/pipeline.ts` | Pipeline orchestration — L-1 allowlist, L0 pre-flight, pre-body (L1/L2/L3/L6), body parsing (L4/L5), post-body (custom plugins + ML engine), final score gate |
+| Validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` — handles 14+ Zod types recursively (including ZodMap/ZodSet) |
+| Index | `src/index.ts` | Public API entry point — `withHippocrates()` HOF, `resolveConfig()`, `ensureStrict()`, `validatePayload()`, all re-exports |
 
 ---
 
@@ -129,9 +155,17 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config v10 (eslint.config.mjs)
-npm test               # Vitest — 143 tests across 8 files
+npm test               # Vitest — 177 tests across 10 files
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
+
+# Python ML engine
+cd engine-python
+pip install -r requirements.txt
+pytest -v              # Python tests (analyzers + API)
+
+# Docker
+docker compose up --build   # Start Redis + ML engine
 ```
 
 The build tool is `tsup`. Output goes to `dist/`. Never commit `dist/` — it is
@@ -230,7 +264,30 @@ have `Buffer`. Use `btoa()` for base64 encoding instead.
 
 ## How to Extend the Library
 
-### Adding a new User-Agent pattern (most common task)
+### Adding a custom AnalyzerPlugin (most common approach)
+
+Create an `AnalyzerPlugin` object and register it via `config.plugins`:
+
+```typescript
+import { type AnalyzerPlugin, withHippocrates } from "hippocrates";
+
+const geoAnalyzer: AnalyzerPlugin = {
+  name: "geo_block",
+  phase: "pre-body",       // "pre-body" | "post-body"
+  priority: 10,            // Lower = runs first
+  async analyze(req, ctx) {
+    const country = req.headers.get("x-country");
+    if (country === "blocked") {
+      return { score: 50, tags: ["geo:blocked"] };
+    }
+    return { score: 0, tags: [] };
+  },
+};
+```
+
+Plugins run alongside built-in L1-L6 analyzers, sorted by priority.
+
+### Adding a new User-Agent pattern
 
 Edit `AGENT_UA_PATTERNS` in `src/engine/constants.ts`. Always use
 `ReadonlyArray<RegExp>`. Add a comment explaining what the pattern targets.
@@ -243,7 +300,7 @@ Edit `AGENT_UA_PATTERNS` in `src/engine/constants.ts`. Always use
 Prefer specific version-aware patterns (`/framework\/[\d.]+/i`) over
 broad keyword matches (`/framework/i`) to reduce false positives.
 
-The array currently has 35+ entries (see AGENTS.md for complete list).
+The array currently has 40+ entries (see AGENTS.md for complete list).
 
 ### Adding a new obfuscation pattern
 
@@ -260,7 +317,7 @@ Edit `OBFUSCATION_PATTERNS` in `src/engine/constants.ts`. Each entry needs
 Test your regex against real payloads before adding. The `name` field
 appears in the violation tag logged to Redis and in `debugMode` output.
 
-### Adding a new detection layer (e.g., L6: header pattern analysis)
+### Adding a new detection layer (hardcoded, not plugin)
 
 1. Add an analyzer function to `src/engine/analyzers.ts`.
 2. Add the corresponding weight key to `ThreatScoringWeights` in `src/engine/types.ts`.
@@ -293,15 +350,13 @@ tier charges per key size in some configurations.
 | `hc:s:{ip}` | Cumulative threat score (integer 0–100) | `threatTtlSeconds` (3600s) |
 | `hc:t:{ip}` | Request timestamp list for velocity window | `velocityWindowMs/1000 + 10s` |
 | `hc:l:{ip}` | Last-seen timestamp for timing analysis | 300s (hardcoded) |
-| `hc:stats:requests` | Total request counter (atomic incr) | Persistent |
-| `hc:stats:honeypot` | Honeypot trigger counter | Persistent |
-| `hc:stats:scores` | Score distribution histogram | Persistent |
+
+> **Stats are in-memory only** (via the `StatsTracker` interface), not stored in Redis.
+> The `hc:stats:*` Redis keys do not exist — counters live on the `ThreatScoreEngine` instance
+> and can be read via `engine.getStats()`.
 
 The `hc:t:{ip}` key uses a Redis list capped at 500 entries via `ltrim`.
 Never change this cap without considering Upstash/Redis memory limits.
-
-`hc:stats:*` keys are only created when `enableStats: true` is set in config.
-They use Redis `INCR` for atomic counters and are not scoped per IP.
 
 ---
 
@@ -314,7 +369,7 @@ Hippocrates injects two internal headers:
 |--------|-------|---------|
 | `x-hippocrates-score` | Integer string, e.g. `"12"` | Threat score for audit logging |
 | `x-hippocrates-clean` | `"1"` | Signals the request passed all checks |
-| `x-hippocrates-request-id` | UUID string | Unique request identifier for log correlation |
+| `x-request-id` | UUID string | Unique request identifier for log correlation |
 
 Read them in your handler via `req.headers.get("x-hippocrates-score")`.
 Strip them before forwarding to third-party services.
@@ -343,6 +398,31 @@ The `ValidationResult<T>` discriminated union uses `ok: true/false` not
 by API responses (which would cause confusing naming at call sites).
 
 ---
+
+## v1.6 Features Summary
+
+Features added since v1.5:
+
+| Feature | Config Field | Since |
+|---------|-------------|-------|
+| **IP Allowlist** | `allowlist: { ips: string[] }` | v1.6 |
+| **Body Size Limits** | `bodyLimit: { maxBytes, enabled }` | v1.6 |
+| **Config Presets** | `preset: "strict" | "moderate" | "relaxed"` | v1.6 |
+| **Method Thresholds** | `methodThresholds: Record<string, number>` | v1.6 |
+| **Custom Violation Messages** | `violationMessages: object` | v1.6 |
+| **Stats Tracker** | `statsTracker: StatsTracker` | v1.6 |
+| **Redis Circuit Breaker** | Automatic (internal) | v1.6 |
+
+## v1.7 Features Summary
+
+| Feature | Config Field | Since |
+|---------|-------------|-------|
+| **ML Engine Plugin** | `plugins: [mlEnginePlugin(...)]` | v1.7 |
+| **Docker Compose** | `docker-compose.yml` | v1.7 |
+| **Stats Integration** | `statsTracker` forwarded from pipeline | v1.7 |
+| **bodyRaw in Context** | `AnalysisContext.bodyRaw` for post-body plugins | v1.7 |
+| **Python Sidecar** | `engine-python/` — FastAPI + 3 analyzers | v1.7 |
+| **CI Docker Build** | GitHub Actions verifies Docker build | v1.7 |
 
 ## Pitfalls and Gotchas
 
@@ -380,6 +460,31 @@ If using ioredis, provide a thin adapter wrapper — do not change the interface
 `::1` (loopback) normalizes to `127.0.0.1`. `::ffff:x.x.x.x` extracts
 the IPv4 portion. Zone IDs (e.g., `fe80::1%eth0`) are stripped.
 The `resolveClientIp()` function handles all header sources.
+
+**The Redis circuit breaker auto-recovers after 30s.**
+After 3 consecutive Redis errors, `redisHealthy` flips to `false` and all
+`getScore()` calls return `0` (safe default). A lightweight `hc:ping` key
+is attempted after 30s — if it succeeds, the circuit breaker resets.
+This prevents transient Redis outages from permanently disabling security.
+
+**ML engine runs in post-body phase with priority 50.**
+It fires after L4/L5 built-in analyzers. The `bodyRaw` field is populated
+by the pipeline before plugins run — ML engine never calls `req.text()` itself.
+
+**ML engine unreachable is non-fatal.**
+The plugin returns `score: 0` with `tags: ["ml-engine-unreachable"]` on any
+fetch failure. Security never depends on the sidecar being available.
+
+**Docker Compose healthchecks require curl.**
+`python:3.12-slim` does not include curl — it's installed explicitly in the
+Dockerfile via `apt-get`. Without it, `HEALTHCHECK --interval=5s` fails.
+
+**Python ML engine supports 3 analyzers.**
+- `PromptInjectionAnalyzer` — heuristic + entropy prompt injection detection
+- `AdvancedObfuscationAnalyzer` — Shannon entropy + encoding chaining analysis
+- `ContentRiskAnalyzer` — SQLi, XSS, path traversal, command injection patterns
+
+Each is independently toggleable via `HIPPO_ML_ENABLE_*` env vars.
 
 ---
 
