@@ -1,0 +1,42 @@
+services:
+  # ── ML Detection Engine ─────────────────────────────────────────
+  ml-engine:
+    build:
+      context: ./engine-python
+      dockerfile: Dockerfile
+    container_name: hippocrates-ml
+    ports:
+      - "8000:8000"
+    environment:
+      - HIPPO_ML_LOG_LEVEL=info
+      - HIPPO_ML_ENABLE_PROMPT_INJECTION=true
+      - HIPPO_ML_ENABLE_OBFUSCATION_ADVANCED=true
+      - HIPPO_ML_ENABLE_CONTENT_RISK=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - hippocrates-net
+
+  # ── Redis (for Hippocrates TS library) ──────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hippocrates-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - hippocrates-net
+
+networks:
+  hippocrates-net:
+    driver: bridge
