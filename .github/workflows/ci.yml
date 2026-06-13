@@ -35,11 +35,31 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Python tests (ML engine)
-        run: npm run build:python
+      - name: Coverage
+        run: npm run coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
 
       - name: Build
         run: npm run build
+
+  python-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python and dependencies
+        run: |
+          pip install -r engine-python/requirements.txt -q
+          pip install pytest -q
+
+      - name: Run Python tests
+        run: python -m pytest engine-python/tests/ -v -q
 
   docker:
     runs-on: ubuntu-latest
