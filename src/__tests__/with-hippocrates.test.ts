@@ -976,6 +976,78 @@ describe("withHippocrates â€” v1.6 IP allowlist", () => {
     // /33 is invalid, should not match → honeypot
     expect(innerHandler).not.toHaveBeenCalled();
   });
+
+  it("handles allowlist with empty ips array gracefully", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: [] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    const res = await wrapped(req);
+
+    // Empty ips means no IP is allowlisted → proceeds to pipeline checks
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(res).toBeDefined();
+  });
+
+  it("does not crash with CIDR IP having fewer than 4 octets (ipToInt edge case)", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["1.2.3/24"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    const res = await wrapped(req);
+
+    // 3-octet CIDR doesn't match but doesn't crash — clean request passes through
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(res).toBeDefined();
+  });
+
+  it("does not crash with CIDR IP having invalid octet (ipToInt edge case)", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["10.0.0.256/24"] },
+    });
+
+    const req = mockRequest({ ip: "10.0.0.1" });
+    const res = await wrapped(req);
+
+    // Invalid octet CIDR doesn't match but doesn't crash — clean request passes through
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(res).toBeDefined();
+  });
 });
 
 // â”€â”€ v1.6: Body size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1487,9 +1559,7 @@ describe("withHippocrates — pipeline edge cases", () => {
       .strict()
       .refine(() => { throw new Error("custom error"); });
 
-    let capturedScore = 0;
-    const innerHandler = vi.fn(async (req: NextRequest) => {
-      capturedScore = parseInt(req.headers.get("x-hippocrates-score") ?? "0", 10);
+    const innerHandler = vi.fn(async (_req: NextRequest) => {
       return { status: 200, body: { success: true } };
     });
 

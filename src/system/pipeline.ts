@@ -1,4 +1,5 @@
-﻿/**
+﻿/* eslint-disable no-console -- debug logging controlled by debugMode flag */
+/**
  * @file Pipeline orchestrator — runs the defense layers in order.
  *
  * The pipeline manages the full request lifecycle:

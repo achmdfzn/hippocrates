@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
-import { withHippocrates, z } from "hippocrates";
+import { withHippocrates, z } from "hippocrates-middleware";
 
 /* ------------------------------------------------------------------ */
 /*  Redis client — configure via environment variables                */

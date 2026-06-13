@@ -627,6 +627,50 @@ describe("ThreatScoreEngine — circuit breaker safe defaults", () => {
     expect(stats.redisErrors).toBe(3);
   });
 
+  it("recovers after cooldown when Redis becomes healthy and logs debug", async () => {
+    vi.useFakeTimers();
+    const broken = createBrokenRedis();
+    const { engine } = createEngine({ redis: broken, config: { debugMode: true } });
+
+    // Trip circuit breaker
+    for (let i = 0; i < 3; i++) {
+      await engine.getScore("1.2.3.4").catch(() => {});
+    }
+
+    // Fix Redis
+    broken.set = vi.fn(async () => {});
+
+    // Advance time past 30s cooldown
+    vi.advanceTimersByTime(30001);
+
+    // This should trigger checkRedisHealth recovery path
+    const score = await engine.getScore("1.2.3.4");
+    expect(typeof score).toBe("number");
+
+    vi.useRealTimers();
+  });
+
+  it("handles circuit breaker recovery failure when Redis stays down after cooldown", async () => {
+    vi.useFakeTimers();
+    const broken = createBrokenRedis();
+    const { engine } = createEngine({ redis: broken, config: { debugMode: true } });
+
+    // Trip circuit breaker
+    for (let i = 0; i < 3; i++) {
+      await engine.getScore("1.2.3.4").catch(() => {});
+    }
+
+    // Keep Redis broken (don't fix it)
+    // Advance time past 30s cooldown
+    vi.advanceTimersByTime(30001);
+
+    // Recovery attempt will fail → gets safe default
+    const score = await engine.getScore("1.2.3.4");
+    expect(score).toBe(0);
+
+    vi.useRealTimers();
+  });
+
   it("registers plugins via the public use() method", async () => {
     const { engine } = createEngine();
     const plugin: AnalyzerPlugin = {

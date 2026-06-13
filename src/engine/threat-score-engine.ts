@@ -1,4 +1,5 @@
-﻿/**
+﻿/* eslint-disable no-console -- debug logging controlled by debugMode flag */
+/**
  * @file ThreatScoreEngine — Core Redis-backed scoring engine.
  *
  * Manages all Redis state operations:

@@ -1,4 +1,5 @@
-﻿/**
+﻿/* eslint-disable no-console -- debug logging controlled by debugMode flag */
+/**
  * @file Decoy data generator and honeypot response builder.
  *
  * The honeypot is the core of the "silent defense" pattern:
