@@ -4,6 +4,7 @@
 [![CI](https://github.com/achmdfzn/hippocrates/actions/workflows/ci.yml/badge.svg)](https://github.com/achmdfzn/hippocrates/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/achmdfzn/hippocrates/branch/main/graph/badge.svg)](https://codecov.io/gh/achmdfzn/hippocrates)
 [![License](https://img.shields.io/github/license/achmdfzn/hippocrates)](https://github.com/achmdfzn/hippocrates/blob/main/LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/achmdfzn/hippocrates)](https://github.com/achmdfzn/hippocrates)
 
 Next.js App Router security middleware that routes malicious requests to a decoy handler instead of blocking them. Uses Redis-backed cumulative threat scoring across six detection layers.
 

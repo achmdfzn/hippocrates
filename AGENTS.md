@@ -28,16 +28,16 @@ hippocrates/
 │   │   └── ip.ts                   # IPv6 normalization (102 lines)
 │   └── __tests__/
 │       ├── helpers.ts                          # Test mocks (Redis, NextRequest, NextResponse)
-│       ├── ip.test.ts                          # 29 tests (IPv6 normalization)
-│       ├── threat-score-engine.test.ts          # 35 tests
-│       ├── validate-payload.test.ts             # 7 tests
-│       ├── decoy.test.ts                       # 9 tests
-│       ├── with-hippocrates.test.ts             # 37 tests (integration — all layers)
-│       ├── ensure-strict.test.ts                # 23 tests (recursive .strict() including ZodMap/ZodSet)
+│       ├── ip.test.ts                          # 30 tests (IPv6 normalization)
+│       ├── threat-score-engine.test.ts          # 45 tests
+│       ├── validate-payload.test.ts             # 8 tests
+│       ├── decoy.test.ts                       # 11 tests
+│       ├── with-hippocrates.test.ts             # 51 tests (integration — all layers)
+│       ├── ensure-strict.test.ts                # 25 tests (recursive .strict() including ZodMap/ZodSet)
 │       ├── redis-degradation.test.ts            # 6 tests (Redis fallback/circuit breaker)
 │       ├── stats.test.ts                       # 5 tests (request statistics)
 │       ├── stats-integration.test.ts            # 13 tests (StatsTracker wiring all layers)
-│       └── ml-engine-integration.test.ts        # 13 tests (ML engine plugin integration)
+│       └── ml-engine-integration.test.ts        # 15 tests (ML engine plugin integration)
 ├── engine-python/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI app — POST /analyze, GET /health
@@ -59,7 +59,7 @@ hippocrates/
 ├── example/
 │   └── app/api/data/route.ts  # Reference implementation
 ├── docker-compose.yml        # Redis + ML engine, healthchecks, hippocrates-net
-├── .github/workflows/ci.yml  # GitHub Actions (lint → typecheck → test → build → docker)
+├── .github/workflows/ci.yml  # GitHub Actions (lint → typecheck → test → coverage → build → python-tests → docker)
 ├── eslint.config.mjs         # ESLint flat config v10
 ├── package.json              # tsup build, peer deps (next, zod)
 ├── tsconfig.json             # strict + exactOptionalPropertyTypes + noUncheckedIndexedAccess
@@ -86,18 +86,18 @@ hippocrates/
 | Zod validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` — handles 14+ Zod types (including ZodMap/ZodSet) |
 | IPv6 normalization | `src/utils/ip.ts` | `normalizeIp()`, `resolveClientIp()` |
 | ML Engine plugin | `src/plugins/ml-engine.ts` | `mlEnginePlugin()` — HTTP client to Python sidecar |
-| Integration tests | `src/__tests__/with-hippocrates.test.ts` | 37 tests, covers all layers + v1.6 features |
-| Unit tests (engine) | `src/__tests__/threat-score-engine.test.ts` | 35 tests (includes L6 header tests) |
-| Decoy/honeypot tests | `src/__tests__/decoy.test.ts` | 9 tests |
-| Validator tests | `src/__tests__/validate-payload.test.ts` | 7 tests |
-| ensureStrict tests | `src/__tests__/ensure-strict.test.ts` | 23 tests (recursive .strict() including ZodMap/ZodSet) |
+| Integration tests | `src/__tests__/with-hippocrates.test.ts` | 51 tests, covers all layers + v1.6 + v1.7 features |
+| Unit tests (engine) | `src/__tests__/threat-score-engine.test.ts` | 45 tests (includes L4 header tests) |
+| Decoy/honeypot tests | `src/__tests__/decoy.test.ts` | 11 tests |
+| Validator tests | `src/__tests__/validate-payload.test.ts` | 8 tests |
+| ensureStrict tests | `src/__tests__/ensure-strict.test.ts` | 25 tests (recursive .strict() including ZodMap/ZodSet) |
 | Redis degradation tests | `src/__tests__/redis-degradation.test.ts` | 6 tests (Redis fallback, circuit breaker) |
 | Stats tests | `src/__tests__/stats.test.ts` | 5 tests (request counts, score histograms) |
 | Stats integration | `src/__tests__/stats-integration.test.ts` | 13 tests (StatsTracker wiring all layers) |
-| ML engine integration | `src/__tests__/ml-engine-integration.test.ts` | 13 tests (ML engine plugin integration) |
-| IPv6 normalization tests | `src/__tests__/ip.test.ts` | 29 tests |
+| ML engine integration | `src/__tests__/ml-engine-integration.test.ts` | 15 tests (ML engine plugin integration) |
+| IPv6 normalization tests | `src/__tests__/ip.test.ts` | 30 tests |
 | Example consumer | `example/app/api/data/route.ts` | Reference impl |
-| CI pipeline | `.github/workflows/ci.yml` | Node 18/20/22 matrix + Docker build job |
+| CI pipeline | `.github/workflows/ci.yml` | Node 18/20/22 matrix + coverage + python-tests job + Docker build job |
 | Skill definition | `SKILL.md` | Loadable by task agents |
 | Orientation | `CLAUDE.md` | Onboarding + invariants |
 
@@ -111,7 +111,7 @@ hippocrates/
 | Engine | `src/engine/threat-score-engine.ts` | 401 | `ThreatScoreEngine` — `getScore()`, `addScore()`, `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `analyzeHeaders()`, `detectObfuscation()`, `runAnalyzers()`, Redis circuit breaker (30s auto-recovery), in-memory stats |
 | ML Plugin | `src/plugins/ml-engine.ts` | 152 | `mlEnginePlugin()` — creates AnalyzerPlugin, HTTP POST to Python sidecar |
 | Honeypot | `src/system/honeypot.ts` | 152 | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, custom violation messages |
-| Pipeline | `src/system/pipeline.ts` | 386 | `HippocratesPipeline` — L-1 allowlist, L0 pre-flight, pre-body (L1/L2/L3/L6), body parsing (L4/L5), post-body plugins, final score gate |
+| Pipeline | `src/system/pipeline.ts` | 386 | `HippocratesPipeline` — L-1 allowlist, L0 pre-flight, pre-body (L1/L2/L3/L4), body parsing (L5/L6), post-body plugins, final score gate |
 | Validator | `src/system/validator.ts` | 206 | `validatePayload<T>()`, `ensureStrict<T>()` — handles 14+ Zod types recursively (ZodMap/ZodSet) |
 | Index | `src/index.ts` | 242 | `withHippocrates()`, `resolveConfig()`, `ensureStrict()`, `validatePayload()`, re-exports, `z`, `ZodSchema` |
 
@@ -142,7 +142,7 @@ hippocrates/
 
 ## CRITICAL INVARIANTS
 
-1. Zod schemas MUST use `.strict()` — otherwise L5 is effectively disabled.
+1. Zod schemas MUST use `.strict()` — otherwise L6 (schema validation) is effectively disabled.
 2. Error messages leak schema structure — always generic count-only format.
 3. `content-length` header MUST be deleted on forwarded requests (stale after re-serialization).
 4. Internal headers `x-hippocrates-score` and `x-hippocrates-clean` MUST be stripped before forwarding to third-party services. The `x-request-id` header is also added for log correlation.
@@ -155,14 +155,15 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config
-npm test               # Vitest (177 TS tests across 10 files)
+npm test               # Vitest (209 TS tests across 10 files)
 npm run test:watch     # Vitest watch mode
+npm run coverage       # Vitest run with coverage (lcov)
 npm run prepublishOnly # typecheck + build
 
 # Python ML engine (39 tests: 31 analyzers + 8 API)
 cd engine-python && pip install -r requirements.txt && pytest -v
 
-# Full stack — all 216 tests + Docker build verification
+# Full stack — all 248 tests + Docker build verification
 npm test && cd engine-python && pytest -v
 
 # Docker
@@ -170,7 +171,8 @@ docker compose up --build   # Redis + ML engine with healthchecks
 ```
 
 CI Pipeline (`.github/workflows/ci.yml`):
-- **quality**: lint → typecheck → test (npm test) → build on Node 18/20/22
+- **quality**: lint → typecheck → test (npm test) → coverage → upload to Codecov → build on Node 18/20/22
+- **python-tests**: pip install → pytest (31 analyzer + 8 API tests)
 - **docker**: build ML engine image → healthcheck verify (Python sidecar + curl)
 
 ## PITFALLS & GOTCHAS
