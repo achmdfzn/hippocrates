@@ -60,8 +60,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "vitest run && cd engine-python && pip install -r requirements.txt -q && pytest -v",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "build:python": "cd engine-python && pip install -r requirements.txt -q && python -m pytest tests/ -v -q",
+    "test:all": "npm test && npm run build:python",
+    "prepublishOnly": "npm run typecheck && npm run build && npm run build:python"
   },
   "peerDependencies": {
     "next": ">=14.0.0",
