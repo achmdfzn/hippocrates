@@ -71,6 +71,8 @@ export interface AnalysisContext {
   config: Readonly<HippocratesConfig>;
   /** Resolved scoring weights (read-only) */
   weights: Readonly<ThreatScoringWeights>;
+  /** Raw request body text, if available (populated in post-body phase) */
+  bodyRaw?: string;
 }
 
 export interface AnalysisResult {
