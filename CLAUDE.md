@@ -38,16 +38,16 @@ hippocrates/
 │   │   └── ip.ts                   # IPv6 normalization (102 lines)
 │   └── __tests__/
 │       ├── helpers.ts                          # Test mocks (159 lines)
-│       ├── ip.test.ts                          # 29 tests (IPv6 normalization)
-│       ├── threat-score-engine.test.ts          # 35 tests
-│       ├── validate-payload.test.ts             # 7 tests
-│       ├── decoy.test.ts                       # 9 tests
-│       ├── with-hippocrates.test.ts             # 37 tests (integration — all layers)
-│       ├── ensure-strict.test.ts                # 23 tests (recursive .strict() + ZodMap/ZodSet)
+│       ├── ip.test.ts                          # 30 tests (IPv6 normalization)
+│       ├── threat-score-engine.test.ts          # 45 tests
+│       ├── validate-payload.test.ts             # 8 tests
+│       ├── decoy.test.ts                       # 11 tests
+│       ├── with-hippocrates.test.ts             # 51 tests (integration — all layers)
+│       ├── ensure-strict.test.ts                # 25 tests (recursive .strict() + ZodMap/ZodSet)
 │       ├── redis-degradation.test.ts            # 6 tests (Redis fallback/circuit breaker)
 │       ├── stats.test.ts                       # 5 tests (request statistics)
 │       ├── stats-integration.test.ts            # 13 tests (StatsTracker wiring all layers)
-│       └── ml-engine-integration.test.ts        # 13 tests (ML engine plugin integration)
+│       └── ml-engine-integration.test.ts        # 15 tests (ML engine plugin integration)
 ├── engine-python/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI app — POST /analyze, GET /health (141 lines)
@@ -99,27 +99,27 @@ Incoming Request
       │
       ▼
    L-1: IP allowlist? ──── YES? ──→ Forward to handler (skip all checks)
-      │ (no)
-      ▼
+       │ (no)
+       ▼
    L0: Pre-flight score check ──── score ≥ threshold? ──→ HONEYPOT (200 OK + fake data)
-      │ (no)
-      ▼
-   Pre-body analyzers (L1, L2, L3, L6 + custom AnalyzerPlugin)
+       │ (no)
+       ▼
+   Pre-body analyzers (L1, L2, L3, L4 + custom AnalyzerPlugin)
    L1: Timing analysis ──── interval < 50ms? ──→ +25 pts
    L2: Velocity check ──── req count > max in window? ──→ +40 pts
    L3: User-Agent analysis ──── known agent UA? ──→ +15 pts
-   L6: Header anomalies ──── missing/wildcard? ──→ +15 pts
-      │ score ≥ threshold?
-      ├──YES──→ HONEYPOT
-      │ (no)
-      ▼
-   Body parse → post-body analyzers (L4, L5 + custom AnalyzerPlugin)
-   L4: Obfuscation scan ──── Base64/Hex in payload? ──→ +100 pts (instant max)
-   L5: Zod .strict() validation ──── schema violation? ──→ +100 pts (instant max)
-      │ score ≥ threshold?
-      ├──YES──→ HONEYPOT
-      │ (no)
-      ▼
+   L4: Header anomalies ──── missing/wildcard? ──→ +15 pts
+       │ score ≥ threshold?
+       ├──YES──→ HONEYPOT
+       │ (no)
+       ▼
+   Body parse → post-body analyzers (L5, L6 + custom AnalyzerPlugin)
+   L5: Obfuscation scan ──── Base64/Hex in payload? ──→ +100 pts (instant max)
+   L6: Zod .strict() validation ──── schema violation? ──→ +100 pts (instant max)
+       │ score ≥ threshold?
+       ├──YES──→ HONEYPOT
+       │ (no)
+       ▼
    PASS → forward clean, validated request to actual handler
 ```
 
@@ -142,7 +142,7 @@ single responsibility and is independently testable.
 | Engine | `src/engine/threat-score-engine.ts` | `ThreatScoreEngine` class — `getScore()`, `addScore()`, `analyzeRequestTiming()`, `analyzeVelocity()`, `analyzeUserAgent()`, `analyzeHeaders()`, `detectObfuscation()`, `runAnalyzers()`, Redis circuit breaker (30s auto-recovery), in-memory stats |
 | ML Plugin | `src/plugins/ml-engine.ts` | `mlEnginePlugin()` factory — creates AnalyzerPlugin that POSTs to Python sidecar |
 | Honeypot | `src/system/honeypot.ts` | `generateDecoyResponse()` (4 templates), `serveHoneypot()`, custom violation messages, Redis degradation |
-| Pipeline | `src/system/pipeline.ts` | Pipeline orchestration — L-1 allowlist, L0 pre-flight, pre-body (L1/L2/L3/L6), body parsing (L4/L5), post-body (custom plugins + ML engine), final score gate |
+| Pipeline | `src/system/pipeline.ts` | Pipeline orchestration — L-1 allowlist, L0 pre-flight, pre-body (L1/L2/L3/L4), body parsing (L5/L6), post-body (custom plugins + ML engine + pre-body plugin analyzers), final score gate |
 | Validator | `src/system/validator.ts` | `validatePayload<T>()`, `ensureStrict<T>()` — handles 14+ Zod types recursively (including ZodMap/ZodSet) |
 | Index | `src/index.ts` | Public API entry point — `withHippocrates()` HOF, `resolveConfig()`, `ensureStrict()`, `validatePayload()`, all re-exports |
 
@@ -155,7 +155,7 @@ npm run build          # tsup → dist/ (CJS + ESM + .d.ts)
 npm run dev            # tsup --watch
 npm run typecheck      # tsc --noEmit
 npm run lint           # ESLint flat config v10 (eslint.config.mjs)
-npm test               # Vitest — 177 tests across 10 files
+npm test               # Vitest — 209 tests across 10 files
 npm run test:watch     # Vitest watch mode
 npm run prepublishOnly # typecheck + build
 npm run test:all       # TS tests + Python tests
@@ -168,7 +168,7 @@ python -m pytest tests/ -v --cov  # With coverage
 
 # Full stack
 docker compose up --build   # Redis + ML engine (health-checked)
-npm test && cd engine-python && pytest -v  # Run all 216 tests
+npm test && cd engine-python && pytest -v  # Run all 248 tests
 ```
 
 The build tool is `tsup`. Output goes to `dist/`. Never commit `dist/` — it is
@@ -357,6 +357,8 @@ tier charges per key size in some configurations.
 > **Stats are in-memory only** (via the `StatsTracker` interface), not stored in Redis.
 > The `hc:stats:*` Redis keys do not exist — counters live on the `ThreatScoreEngine` instance
 > and can be read via `engine.getStats()`.
+>
+> **Serverless Warning**: In serverless environments (Vercel Edge, AWS Lambda, Cloudflare Workers), each cold start creates a fresh `ThreatScoreEngine` instance — **stats reset on every invocation**. For production monitoring, always provide a custom `StatsTracker` that persists to Redis, a database, or an observability platform.
 
 The `hc:t:{ip}` key uses a Redis list capped at 500 entries via `ltrim`.
 Never change this cap without considering Upstash/Redis memory limits.
@@ -497,7 +499,10 @@ GitHub Actions runs on push/PR to `main`:
 
 ```
 quality (Node 18/20/22):
-  lint → typecheck → test (npm test) → build (tsup)
+  lint → typecheck → test (npm test) → coverage → upload to Codecov → build (tsup)
+
+python-tests:
+  pip install → pytest (31 analyzer + 8 API tests)
 
 docker:
   build ML engine Docker image → healthcheck → verify container starts
@@ -513,7 +518,7 @@ the Python sidecar compiles, starts, and responds to `GET /health`.
 - Does not handle authentication or authorization. Hippocrates validates
   payload *structure* — not whether the user has permission to act.
 - Does not protect GET endpoints automatically. The body validation layers
-  (L4, L5) only run for methods with a body (POST, PUT, PATCH, DELETE).
+  (L5, L6) only run for methods with a body (POST, PUT, PATCH, DELETE).
   Protect GET endpoints with velocity/timing layers by wrapping them too.
 - Does not persist violations across Redis restarts. A Redis flush clears
   all threat scores. This is acceptable — a fresh start is not a security hole.
