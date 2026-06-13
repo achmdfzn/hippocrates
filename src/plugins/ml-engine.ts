@@ -154,7 +154,6 @@ export function mlEnginePlugin(
       };
 
       // ── Attempt request with retries ──────────────────────────
-      let lastError: unknown;
 
       for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
         if (attempt > 0) {
@@ -194,8 +193,7 @@ export function mlEnginePlugin(
             score: result.score,
             tags: result.tags.map((t) => `ml:${t}`),
           };
-        } catch (err) {
-          lastError = err;
+          } catch {
           // Fall through to retry or degrade
         }
       }
