@@ -21,6 +21,13 @@
  *   - In-memory stats tracker
  *   - 2026 AI agent UA patterns
  *
+ * v1.7 introduces:
+ *   - ML Engine Python sidecar for deep content analysis
+ *   - Docker Compose support (Redis + ML engine)
+ *   - StatsTracker interface for consumer metrics
+ *   - AnalyzerPlugin system refinements (bodyRaw in context)
+ *   - Redis circuit breaker auto-recovery (30s cooldown)
+ *
  * Defense Layers (in execution order):
  *   L-1 — IP allowlist (skip all checks for trusted IPs)
  *   L0 — Pre-flight existing threat score check
@@ -99,6 +106,11 @@ export { HippocratesPipeline } from "./system/pipeline";
 // ── Utility exports ────────────────────────────────────────────────
 
 export { normalizeIp, resolveClientIp } from "./utils/ip";
+
+// ── Plugin exports ─────────────────────────────────────────────────
+
+export { mlEnginePlugin } from "./plugins/ml-engine";
+export type { MlEnginePluginOptions } from "./plugins/ml-engine";
 
 // ── Primary API: withHippocrates HOF ───────────────────────────────
 
