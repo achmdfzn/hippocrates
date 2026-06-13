@@ -65,18 +65,23 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
     private readonly config: HippocratesConfig,
     private readonly weights: ThreatScoringWeights
   ) {
-    // Register built-in analyzers first
+    // Register built-in analyzers first (with registration index for stable sort)
+    let registrationIndex = 0;
     for (const plugin of BUILT_IN_ANALYZERS) {
-      this.plugins.push(plugin);
+      this.plugins.push({ ...plugin, _registrationIndex: registrationIndex++ });
     }
     // Register user-provided plugins from config
     if (config.plugins) {
       for (const plugin of config.plugins) {
-        this.plugins.push(plugin);
+        this.plugins.push({ ...plugin, _registrationIndex: registrationIndex++ });
       }
     }
-    // Sort by priority (lower = runs first)
-    this.plugins.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+    // Sort by priority (lower = runs first), then by registration order for stability
+    this.plugins.sort((a, b) => {
+      const priorityDiff = (a.priority ?? 100) - (b.priority ?? 100);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (a._registrationIndex ?? 0) - (b._registrationIndex ?? 0);
+    });
   }
 
   // ── Redis graceful degradation ───────────────────────────────────
@@ -153,13 +158,18 @@ export class ThreatScoreEngine implements ThreatScoreEngineLike {
   /**
    * Register a custom analyzer plugin.
    * Plugins run after built-in analyzers in their phase,
-   * sorted by priority (ascending).
+   * sorted by priority (ascending), then registration order for stability.
    *
    * @since v1.5
    */
   use(plugin: AnalyzerPlugin): void {
-    this.plugins.push(plugin);
-    this.plugins.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+    const registrationIndex = this.plugins.length;
+    this.plugins.push({ ...plugin, _registrationIndex: registrationIndex } as AnalyzerPlugin & { _registrationIndex: number });
+    this.plugins.sort((a, b) => {
+      const priorityDiff = (a.priority ?? 100) - (b.priority ?? 100);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (a._registrationIndex ?? 0) - (b._registrationIndex ?? 0);
+    });
   }
 
   /**

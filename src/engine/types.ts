@@ -116,6 +116,9 @@ export interface AnalyzerPlugin {
     req: NextRequest,
     context: AnalysisContext
   ): Promise<AnalysisResult> | AnalysisResult;
+
+  /** @internal Used for stable sort — do not set manually */
+  _registrationIndex?: number;
 }
 
 // ── Event hooks (NEW in v1.5) ───────────────────────────────────────
