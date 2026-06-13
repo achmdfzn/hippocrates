@@ -123,4 +123,20 @@ describe("validatePayload", () => {
       expect(result.error).toMatch(/1 constraint/);
     }
   });
+
+  it("returns isSchemaViolation:false for non-Zod errors (e.g., refine that throws)", () => {
+    const schemaWithRefine = z
+      .object({ val: z.string() })
+      .strict()
+      .refine(() => {
+        throw new Error("custom non-zod error");
+      });
+    // Input passes the .strict() check but the refine callback throws
+    const result = validatePayload({ val: "hello" }, schemaWithRefine);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.isSchemaViolation).toBe(false);
+      expect(result.error).toBe("Invalid request format");
+    }
+  });
 });

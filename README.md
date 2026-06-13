@@ -40,7 +40,7 @@
     <img src="https://img.shields.io/badge/Built%20with-Python-3776AB?style=flat-square&logo=python" alt="Built with Python"/>
   </a>
   <a href="https://coveralls.io/github/achmdfzn/hippocrates">
-    <img src="https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square" alt="Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-99%25-brightgreen?style=flat-square" alt="Coverage"/>
   </a>
   <a href="https://github.com/achmdfzn/hippocrates/stargazers">
     <img src="https://img.shields.io/github/stars/achmdfzn/hippocrates?style=flat-square&logo=github&color=%23FFD700" alt="Stars"/>

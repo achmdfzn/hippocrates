@@ -88,9 +88,9 @@ vi.mock("next/server", () => ({
   },
 }));
 
-import { withHippocrates } from "../index";
+import { withHippocrates, z } from "../index";
 import { createMockRedis, TestSchema } from "./helpers";
-import type { HippocratesConfig, HoneypotEvent, PassEvent } from "../index";
+import type { HippocratesConfig, HoneypotEvent, PassEvent, AnalyzerPlugin } from "../index";
 
 beforeEach(() => {
   mockJson.mockReset();
@@ -1276,6 +1276,231 @@ describe("withHippocrates — config edge cases", () => {
     const req = mockRequest();
     await wrapped(req);
     // Should not crash — handler called normally
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Pipeline edge cases ─────────────────────────────────────────────────
+
+describe("withHippocrates — pipeline edge cases", () => {
+  it("handles pre-consumed body without crashing", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const bodyConsumer: AnalyzerPlugin = {
+      name: "body_consumer",
+      phase: "pre-body",
+      priority: 1,
+      analyze: async (req) => {
+        await req.text();
+        return { score: 0, tags: [] };
+      },
+    };
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      plugins: [bodyConsumer],
+    });
+
+    const req = mockRequest();
+    await wrapped(req);
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles unhandled pipeline exception gracefully with debug mode", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    // Handler that throws unexpectedly
+    const innerHandler = vi.fn(async (_req) => {
+      throw new Error("Handler crashed!");
+    });
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      debugMode: true,
+      threatScoreThreshold: 65,
+    });
+
+    const req = mockRequest();
+    await wrapped(req);
+    // Should return 500 error response, not crash the process
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("detects L6 header anomalies with wildcard accept", async () => {
+    let capturedScore = 0;
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (req: NextRequest) => {
+      const score = parseInt(req.headers.get("x-hippocrates-score") ?? "0", 10);
+      capturedScore = score;
+      return { status: 200, body: { success: true } };
+    });
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 65,
+      scoring: { suspiciousHeaders: 15 },
+    });
+
+    // Send request with wildcard accept header (triggers L6 wildcard_accept anomaly)
+    const req = mockRequest({
+      headers: {
+        "accept": "*/*",
+        "user-agent": "test-agent",
+      },
+    });
+    await wrapped(req);
+    // Should still pass to handler (score from header anomaly < 65)
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(capturedScore).toBeGreaterThanOrEqual(15);
+  });
+
+  it("forwards allowlisted IP with non-parseable body without crashing (pipeline L-1 catch)", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    // No ip override → resolveClientIp returns "127.0.0.1" which is allowlisted
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      allowlist: { ips: ["127.0.0.1"] },
+    });
+
+    // Non-JSON body causes JSON.parse to throw inside allowlist block → hits catch
+    const req = mockRequest({ body: "not valid json" });
+    await wrapped(req);
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("hits mid-flight score gate when pre-body score reaches threshold", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    // Very low threshold so missing UA (L3 = 15) exceeds it immediately
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      threatScoreThreshold: 5,
+    });
+
+    const req = mockRequest({ headers: { "user-agent": "python-requests/2.28.0" } });
+    const res = await wrapped(req);
+    expect(innerHandler).not.toHaveBeenCalled();
+    expect(res.status).toBe(200); // Honeypot returns 200
+  });
+
+  it("handles plugin analyzer error in debug mode (engine catch)", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const throwingPlugin: AnalyzerPlugin = {
+      name: "thrower",
+      phase: "pre-body",
+      priority: 0,
+      analyze: async () => {
+        throw new Error("plugin failure");
+      },
+    };
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      debugMode: true,
+      threatScoreThreshold: 65,
+      plugins: [throwingPlugin],
+    });
+
+    const req = mockRequest();
+    const res = await wrapped(req);
+    // Plugin error is caught internally, pipeline continues normally
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+  });
+
+  it("includes debug logs in addScore when debugMode is enabled", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+    const innerHandler = vi.fn(async (_req) => ({
+      status: 200,
+      body: { success: true },
+    }));
+
+    const wrapped = withHippocrates(innerHandler, TestSchema, client, {
+      debugMode: true,
+      threatScoreThreshold: 65,
+    });
+
+    const req = mockRequest();
+    await wrapped(req);
+    // Handler should be called (score < 65)
+    expect(innerHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses nonJsonBody weight when refinement throws non-ZodError during validation", async () => {
+    mockJson.mockImplementation((body, init) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }));
+
+    const { client } = createMockRedis();
+
+    // Schema with a refine that throws a regular Error (not ZodError)
+    const schemaWithThrowingRefine = z
+      .object({ val: z.string() })
+      .strict()
+      .refine(() => { throw new Error("custom error"); });
+
+    let capturedScore = 0;
+    const innerHandler = vi.fn(async (req: NextRequest) => {
+      capturedScore = parseInt(req.headers.get("x-hippocrates-score") ?? "0", 10);
+      return { status: 200, body: { success: true } };
+    });
+
+    const wrapped = withHippocrates(innerHandler, schemaWithThrowingRefine, client, {
+      threatScoreThreshold: 65,
+      scoring: { nonJsonBody: 50 },  // nonJsonBody weight
+    });
+
+    const req = mockRequest({ body: '{"val":"hello"}' });
+    await wrapped(req);
+    // nonJsonBody (50) + possible pre-body scores < 65, so handler called
     expect(innerHandler).toHaveBeenCalledTimes(1);
   });
 });

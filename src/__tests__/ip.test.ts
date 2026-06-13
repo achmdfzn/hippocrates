@@ -108,6 +108,11 @@ describe("normalizeIp", () => {
     // A string with dots but not a valid IPv4 is returned as-is
     expect(normalizeIp("256.256.256.256")).toBe("256.256.256.256");
   });
+
+  it("returns as-is for strings with single colon (not IPv6)", () => {
+    // Single colon means it doesn't have enough colons for IPv6
+    expect(normalizeIp("host:port")).toBe("host:port");
+  });
 });
 
 // ── resolveClientIp ──────────────────────────────────────────────────

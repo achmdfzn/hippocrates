@@ -30,7 +30,7 @@ hippocrates/
 │   │   └── threat-score-engine.ts  # ThreatScoreEngine class (401 lines)
 │   ├── plugins/
 │   │   └── ml-engine.ts            # Python sidecar AnalyzerPlugin (152 lines)
-│   ├── system/
+│   /
 │   │   ├── honeypot.ts             # Decoy, honeypot, Redis degradation (152 lines)
 │   │   ├── pipeline.ts             # Pipeline orchestration (386 lines)
 │   │   └── validator.ts            # Zod validatePayload + ensureStrict (206 lines)

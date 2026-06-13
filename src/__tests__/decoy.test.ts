@@ -151,4 +151,16 @@ describe("serveHoneypot", () => {
     expect(data).toHaveProperty("custom", "fallback_worked");
     expect(data).toHaveProperty("base", true);
   });
+
+  it("falls back to primaryViolation when violationType is empty after split", async () => {
+    const req = createMockRequest();
+    const decoyFn = () => ({ base: true });
+    const violationMessages = {
+      ":empty_type_prefix": () => ({ custom: "empty_type_fallback" }),
+    };
+    const res = serveHoneypot(req, decoyFn, "1.2.3.4", 80, [":empty_type_prefix"], false, violationMessages);
+    const data = await res.json();
+    expect(data).toHaveProperty("custom", "empty_type_fallback");
+    expect(data).toHaveProperty("base", true);
+  });
 });

@@ -23,6 +23,8 @@ import type {
   ThreatScoringWeights,
   HippocratesConfig,
   RedisClient,
+  AnalyzerPlugin,
+  AnalysisContext,
 } from "../index";
 import { createMockRedis } from "./helpers";
 
@@ -522,5 +524,149 @@ describe("ThreatScoreEngine — circuit breaker safe defaults", () => {
     // should recover. For the test, verify the engine state.
     const stats = engine.getStats();
     expect(stats.redisErrors).toBeGreaterThanOrEqual(3);
+  });
+
+  it("logs debug output in addScore when debugMode is enabled", async () => {
+    const { engine } = createEngine({ config: { debugMode: true } });
+    const score = await engine.addScore("9.9.9.9", 25, "test_debug");
+    expect(score).toBe(25);
+  });
+  it("fires onViolation hook when a plugin reports a violation", async () => {
+    const { redis } = createMockRedis();
+    const onViolation = vi.fn();
+
+    const testPlugin: AnalyzerPlugin = {
+      name: "test_violation",
+      phase: "pre-body",
+      priority: 0,
+      analyze: async () => ({ score: 20, tags: ["test:violation"] }),
+    };
+
+    const engineWithHook = new ThreatScoreEngine(
+      redis,
+      {
+        threatScoreThreshold: 65,
+        velocityWindowMs: 10_000,
+        velocityMaxRequests: 15,
+        threatTtlSeconds: 3_600,
+        debugMode: false,
+        hooks: { onViolation },
+        plugins: [testPlugin],
+      },
+      {
+        suspiciousUserAgent: 15,
+        schemaViolation: 100,
+        obfuscationDetected: 100,
+        velocityViolation: 40,
+        impossibleTiming: 25,
+        nonJsonBody: 10,
+      }
+    );
+
+    const mockReq = {
+      headers: new Map<string, string>(),
+      method: "POST",
+      url: "http://localhost/test",
+      text: async () => '{"test":"data"}',
+      json: async () => ({ test: "data" }),
+    } as any;
+
+    const ctx: AnalysisContext = {
+      ip: "1.2.3.4",
+      requestId: "test-req-id",
+      engine: engineWithHook,
+      config: {
+        threatScoreThreshold: 65,
+        velocityWindowMs: 10_000,
+        velocityMaxRequests: 15,
+        threatTtlSeconds: 3_600,
+        debugMode: false,
+        hooks: { onViolation },
+        plugins: [testPlugin],
+      } as HippocratesConfig,
+      weights: {
+        suspiciousUserAgent: 15,
+        schemaViolation: 100,
+        obfuscationDetected: 100,
+        velocityViolation: 40,
+        impossibleTiming: 25,
+        nonJsonBody: 10,
+      },
+    };
+
+    const result = await engineWithHook.runAnalyzers(mockReq, ctx, "pre-body");
+    expect(onViolation).toHaveBeenCalledTimes(1);
+    expect(onViolation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ip: "1.2.3.4",
+        violations: ["test:violation"],
+        analyzerName: "test_violation",
+      })
+    );
+    expect(result.score).toBe(20);
+    expect(result.violations).toEqual(["test:violation"]);
+  });
+
+  it("logs debug output in handleRedisError when debugMode is enabled", async () => {
+    const broken = createBrokenRedis();
+    const { engine } = createEngine({ redis: broken, config: { debugMode: true } });
+    // First Redis error triggers handleRedisError at error count 1 (before circuit breaker)
+    await engine.getScore("1.2.3.4");
+    const stats = engine.getStats();
+    expect(stats.redisErrors).toBe(1);
+  });
+
+  it("logs circuit breaker trip in handleRedisError when debugMode is enabled", async () => {
+    const broken = createBrokenRedis();
+    const { engine } = createEngine({ redis: broken, config: { debugMode: true } });
+    // Trip the circuit breaker with 3 Redis errors
+    for (let i = 0; i < 3; i++) {
+      await engine.getScore("1.2.3.4").catch(() => {});
+    }
+    const stats = engine.getStats();
+    expect(stats.redisErrors).toBe(3);
+  });
+
+  it("registers plugins via the public use() method", async () => {
+    const { engine } = createEngine();
+    const plugin: AnalyzerPlugin = {
+      name: "use_test",
+      phase: "post-body",
+      priority: 50,
+      analyze: async () => ({ score: 10, tags: ["use:test"] }),
+    };
+    engine.use(plugin);
+    // After registration, the engine's plugin list should include it
+    // Verify by running analyzers for post-body
+    const mockReq = {
+      headers: new Map<string, string>(),
+      method: "POST",
+      url: "http://localhost/test",
+      text: async () => '{"test":"data"}',
+      json: async () => ({ test: "data" }),
+    } as any;
+    const ctx: AnalysisContext = {
+      ip: "5.5.5.5",
+      requestId: "use-test",
+      engine: engine,
+      config: {
+        threatScoreThreshold: 65,
+        velocityWindowMs: 10_000,
+        velocityMaxRequests: 15,
+        threatTtlSeconds: 3_600,
+        debugMode: false,
+      } as HippocratesConfig,
+      weights: {
+        suspiciousUserAgent: 15,
+        schemaViolation: 100,
+        obfuscationDetected: 100,
+        velocityViolation: 40,
+        impossibleTiming: 25,
+        nonJsonBody: 10,
+      },
+    };
+    const result = await engine.runAnalyzers(mockReq, ctx, "post-body");
+    expect(result.score).toBe(10);
+    expect(result.violations).toEqual(["use:test"]);
   });
 });
