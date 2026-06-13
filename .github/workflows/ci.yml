@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   quality:
@@ -34,6 +34,9 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Python tests (ML engine)
+        run: npm run build:python
 
       - name: Build
         run: npm run build
