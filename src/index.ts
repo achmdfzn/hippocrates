@@ -34,9 +34,9 @@
  *   L1 — Sub-human request timing detection (< 50ms)
  *   L2 — Sliding-window velocity tracking
  *   L3 — User-Agent fingerprinting (HTTP libs, LLM SDKs, headless)
- *   L4 — Payload obfuscation detection (Base64, Hex, URL, Unicode)
- *   L5 — Zero-Trust Zod schema validation (.strict() enforced)
- *   L6 — Header anomaly detection
+ *   L4 — Header anomaly detection
+ *   L5 — Payload obfuscation detection (Base64, Hex, URL, Unicode)
+ *   L6 — Zero-Trust Zod schema validation (.strict() enforced)
  *
  * @version 1.6.0
  * @license MIT

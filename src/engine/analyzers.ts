@@ -19,8 +19,8 @@
  * placeholders in their respective phases.
  *
  * Priority order (built-in):
- *   Pre-body:  L1 timing(10) → L2 velocity(20) → L3 UA(30) → L6 headers(40)
- *   Post-body: L4 obfuscation(10) → L5 schema(20)
+ *   Pre-body:  L1 timing(10) → L2 velocity(20) → L3 UA(30) → L4 headers(40)
+ *   Post-body: L5 obfuscation(10) → L6 schema(20)
  */
 
 import type {
@@ -64,11 +64,23 @@ export const userAgentAnalyzer: AnalyzerPlugin = {
   },
 };
 
-// ── L4: Obfuscation Detection ──────────────────────────────────────
+// ── L4: Header Anomaly Detection ───────────────────────────────────
+
+/** Placeholder — runs via engine.analyzeHeaders() in the pipeline. */
+export const headerAnalyzer: AnalyzerPlugin = {
+  name: "L4_headers",
+  phase: "pre-body",
+  priority: 40,
+  analyze(): AnalysisResult {
+    return { score: 0, tags: [] };
+  },
+};
+
+// ── L5: Obfuscation Detection ──────────────────────────────────────
 
 /** Placeholder — runs via engine.detectObfuscation() in the pipeline. */
 export const obfuscationAnalyzer: AnalyzerPlugin = {
-  name: "L4_obfuscation",
+  name: "L5_obfuscation",
   phase: "post-body",
   priority: 10,
   analyze(): AnalysisResult {
@@ -76,25 +88,13 @@ export const obfuscationAnalyzer: AnalyzerPlugin = {
   },
 };
 
-// ── L5: Schema Validation (Zod .strict()) ──────────────────────────
+// ── L6: Schema Validation (Zod .strict()) ──────────────────────────
 
 /** Placeholder — runs via validatePayload() in the pipeline. */
 export const schemaAnalyzer: AnalyzerPlugin = {
-  name: "L5_schema",
+  name: "L6_schema",
   phase: "post-body",
   priority: 20,
-  analyze(): AnalysisResult {
-    return { score: 0, tags: [] };
-  },
-};
-
-// ── L6: Header Anomaly Detection ───────────────────────────────────
-
-/** Placeholder — runs via engine.analyzeHeaders() in the pipeline. */
-export const headerAnalyzer: AnalyzerPlugin = {
-  name: "L6_headers",
-  phase: "pre-body",
-  priority: 40,
   analyze(): AnalysisResult {
     return { score: 0, tags: [] };
   },

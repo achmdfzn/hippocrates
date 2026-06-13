@@ -156,7 +156,7 @@ export const OBFUSCATION_PATTERNS: ReadonlyArray<ObfuscationPattern> = [
   },
 ];
 
-// ── Header anomaly patterns (L6) ───────────────────────────────────
+// ── Header anomaly patterns (L4) ───────────────────────────────────
 
 export const HEADER_ANOMALY_PATTERNS: ReadonlyArray<HeaderAnomalyPattern> = [
   {

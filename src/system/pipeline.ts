@@ -95,7 +95,7 @@ export class HippocratesPipeline {
         this.engine.incrementStats("honeypotServed");
         return this.sendToHoneypot(req, ip, score, ["preflight_block"], requestId);
       }
-      // ── Pre-body analyzers (L1, L2, L3, L6 + custom) ─────────
+      // ── Pre-body analyzers (L1, L2, L3, L4 + custom) ─────────
       const preBodyResult = await this.runPreBodyAnalyzers(req, ip, requestId);
       score += preBodyResult.score;
       violations.push(...preBodyResult.violations);
@@ -104,7 +104,7 @@ export class HippocratesPipeline {
         this.engine.incrementStats("honeypotServed");
         return this.sendToHoneypot(req, ip, score, violations, requestId);
       }
-      // ── Body parsing + Post-body analyzers (L4, L5 + custom) ─
+      // ── Body parsing + Post-body analyzers (L5, L6 + custom) ─
       const bodyResult = await this.processBody(req, ip, requestId);
       score += bodyResult.score;
       violations.push(...bodyResult.violations);
@@ -211,7 +211,7 @@ export class HippocratesPipeline {
       score += this.weights.suspiciousUserAgent;
       await this.engine.addScore(ip, this.weights.suspiciousUserAgent, `ua_${ua.reason}`);
     }
-    // L6: Header anomaly detection
+    // L4: Header anomaly detection
     const headerCheck = this.engine.analyzeHeaders(req.headers);
     if (headerCheck.isSuspicious) {
       const tag = `header:${headerCheck.signals.join(",")}`;
@@ -281,7 +281,7 @@ export class HippocratesPipeline {
       };
     }
     if (parsed !== null && typeof parsed === "object") {
-      // L4: Obfuscation scan
+      // L5: Obfuscation scan
       const obf = this.engine.detectObfuscation(
         parsed as Record<string, unknown>
       );
@@ -292,7 +292,7 @@ export class HippocratesPipeline {
         await this.engine.addScore(ip, this.weights.obfuscationDetected, tag);
         this.engine.incrementStats("blockedByObfuscation");
       }
-      // L5: Zod validation (skip if already over threshold)
+      // L6: Zod validation (skip if already over threshold)
       const threshold = this.getEffectiveThreshold(req.method);
       if (score < threshold) {
         const result = validatePayload(parsed, this.strictSchema);
