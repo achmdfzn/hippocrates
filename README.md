@@ -1,176 +1,96 @@
-﻿<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/6e5b3fa5-d7e2-44bb-849d-7ea79b5d95f7">
-    <img alt="Hippocrates" src="https://github.com/user-attachments/assets/6e5b3fa5-d7e2-44bb-849d-7ea79b5d95f7" width="140">
-  </picture>
-  <br/>
-  <em>First, do no harm — to your API.</em>
-</p>
+﻿# Hippocrates
 
-<h1 align="center">🩺 Hippocrates</h1>
+[![npm version](https://img.shields.io/npm/v/hippocrates-middleware)](https://www.npmjs.com/package/hippocrates-middleware)
+[![CI](https://github.com/achmdfzn/hippocrates/actions/workflows/ci.yml/badge.svg)](https://github.com/achmdfzn/hippocrates/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/achmdfzn/hippocrates/branch/main/graph/badge.svg)](https://codecov.io/gh/achmdfzn/hippocrates)
+[![License](https://img.shields.io/github/license/achmdfzn/hippocrates)](https://github.com/achmdfzn/hippocrates/blob/main/LICENSE)
 
-<p align="center">
-  <strong>Next.js App Router Security Middleware</strong><br/>
-  The first API security library that <strong>doesn't fight back</strong>.<br/>
-  It just nods, smiles, and feeds attackers convincing fake data.
-</p>
+Next.js App Router security middleware that routes malicious requests to a decoy handler instead of blocking them. Uses Redis-backed cumulative threat scoring across six detection layers.
 
-<br/>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/hippocrates-middleware">
-    <img src="https://img.shields.io/npm/v/hippocrates-middleware?style=flat-square&logo=npm&color=%23CB3837" alt="npm version"/>
-  </a>
-  <a href="https://www.npmjs.com/package/hippocrates-middleware">
-    <img src="https://img.shields.io/npm/dm/hippocrates-middleware?style=flat-square&logo=npm&color=%23CB3837" alt="npm downloads"/>
-  </a>
-  <a href="https://github.com/achmdfzn/hippocrates/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/achmdfzn/hippocrates?style=flat-square&color=%234FC921" alt="MIT License"/>
-  </a>
-  <a href="https://www.typescriptlang.org/">
-    <img src="https://img.shields.io/badge/TypeScript-5.4%2B-3178C6?style=flat-square&logo=typescript" alt="TypeScript"/>
-  </a>
-  <a href="https://nextjs.org/">
-    <img src="https://img.shields.io/badge/Next.js-14%2B-000000?style=flat-square&logo=next.js" alt="Next.js"/>
-  </a>
-  <a href="https://github.com/achmdfzn/hippocrates/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/achmdfzn/hippocrates/ci.yml?style=flat-square&logo=github&label=CI" alt="CI"/>
-  </a>
-  <a href="https://github.com/achmdfzn/hippocrates/tree/main/engine-python">
-    <img src="https://img.shields.io/badge/Built%20with-Python-3776AB?style=flat-square&logo=python" alt="Built with Python"/>
-  </a>
-  <a href="https://coveralls.io/github/achmdfzn/hippocrates">
-    <img src="https://img.shields.io/badge/coverage-99%25-brightgreen?style=flat-square" alt="Coverage"/>
-  </a>
-  <a href="https://github.com/achmdfzn/hippocrates/stargazers">
-    <img src="https://img.shields.io/github/stars/achmdfzn/hippocrates?style=flat-square&logo=github&color=%23FFD700" alt="Stars"/>
-  </a>
-  <a href="https://twitter.com/intent/tweet?text=Hippocrates%20-%20Next.js%20security%20middleware%20that%20silently%20destroys%20AI%20agents%20%F0%9F%A9%BA&url=https://github.com/achmdfzn/hippocrates">
-    <img src="https://img.shields.io/badge/share%20on-X-1DA1F2?style=flat-square&logo=x" alt="Share on X"/>
-  </a>
-</p>
-
-<br/>
-
-<blockquote>
-  <strong>⚠️ Traditional API security is broken.</strong> Rate limiting tells attackers to slow down. WAF blocks tell them to rotate IPs. Every <code>403</code> and <code>429</code> is feedback — making AI agents <em>smarter</em>.<br/><br/>
-  <strong>Hippocrates flips the script.</strong> Every detected threat gets a convincing <code>200 OK</code> with realistic fake data. The attacker wastes compute, burns token budgets, and their agentic pipelines fail silently — never knowing they've been caught.
-</blockquote>
-
-<p align="center">
-  <a href="#-the-problem">🔥 The Problem</a> •
-  <a href="#-quick-start">🚀 Quick Start</a> •
-  <a href="#-defense-layers">⚔️ Defense Layers</a> •
-  <a href="#-comparison">📊 Comparison</a> •
-  <a href="#-api-reference">🔧 API</a> •
-  <a href="#-anatomy-of-a-honeypot">🕳️ Anatomy</a>
-</p>
+```
+npm install hippocrates-middleware zod
+```
 
 ---
 
-## 🔥 The Problem
+## Contents
 
-**Your API has already been breached — you just served the attacker successfully.**
-
-Modern API threats aren't human. Autonomous AI agents are relentless, adaptive, and they never sleep:
-
-<div align="center">
-
-| Capability | Impact | How Hippocrates Fights It |
-|:-----------|:-------|:-------------------------|
-| **10,000+ req/min** from a single IP | Saturates infra, spikes cloud bills | 🎭 Silently routes to honeypot |
-| **Probes schema boundaries** systematically | Discovers hidden endpoints | 🧱 Zero-Trust `.strict()` layers |
-| **Injects obfuscated payloads** | Bypasses WAF keyword filters | 🔍 Recursive base64/hex scanner |
-| **Adapts in real-time** from errors | Evolves attack strategy after every `4xx` | 🫥 No `4xx` ever — no feedback loop |
-| **Chains API calls** agentically | Correlates data across endpoints | 💀 Breaks the chain silently |
-
-</div>
-
-### Why Everything Else Fails
-
-<div align="center">
-
-| Approach | The Problem | Why |
-|:---------|:-----------|:----|
-| **Rate limiting** (`429`) | Feedback | Tells attacker to slow down. They do. Then resume. |
-| **WAF blocks** (`403`) | Feedback | Tells attacker to rotate IP. They do. You chase. |
-| **API keys** | Credential loss | Keys leak in env files, commits, logs. Game over. |
-| **Stateless validation** | Amnesia | Every request is a fresh start. No memory. No pattern. |
-
-</div>
+- [How It Works](#how-it-works)
+- [Requirements](#requirements)
+- [Tutorial](#tutorial)
+- [Codebase Structure](#codebase-structure)
+- [Pairing the Repo](#pairing-the-repo)
+- [Defense Layers](#defense-layers)
+- [Configuration](#configuration)
+- [Plugin System](#plugin-system)
+- [Event Hooks](#event-hooks)
+- [Stats Tracking](#stats-tracking)
+- [ML Engine (Python Sidecar)](#ml-engine-python-sidecar)
+- [License](#license)
 
 ---
 
-## 🩺 The Hippocrates Way
+## How It Works
 
-Instead of blocking, we **deceive**. Instead of fighting, we **fatigue**. The attacker spends compute processing data that doesn't exist — and never realizes it.
+Every incoming request passes through detection layers. Each layer can add points to an IP's cumulative threat score stored in Redis. If the score crosses the threshold, the request is routed to a decoy generator instead of the real handler. The decoy returns a 200 OK with fake data. The caller never sees a 403 or 429 and gets no signal they were detected.
 
 ```
 Incoming Request
-      │
-      ▼
-┌─────────────────┐
-│  L-1  Allowlist?│──YES──► Forward to handler (skip all checks)
-└────────┬────────┘
-         │ NO
-         ▼
-┌─────────────────┐     ┌──────────────────────────────┐
-│  L0  Pre-flight │────►│  Existing score ≥ threshold? │──YES──►🎭 HONEYPOT
-└────────┬────────┘     │  (remembered from Redis)     │        200 OK (fake)
-         │ NO           └──────────────────────────────┘
-         ▼
-┌──────────────────────────────────────────────────────┐
-│  L1  Timing        L2  Velocity        L3  UA        │
-│  L6  Headers       (pre-body analyzers)              │
-└───────────────────────┬──────────────────────────────┘
-                        │ score ≥ threshold?
-                        ├──YES──►🎭 HONEYPOT
-                        │ NO
-                        ▼
-┌──────────────────────────────────────────────────────┐
-│  L4  Obfuscation    L5  Schema  (body analyzers)     │
-└───────────────────────┬──────────────────────────────┘
-                        │ score ≥ threshold?
-                        ├──YES──►🎭 HONEYPOT
-                        │ NO
-                        ▼
-              ✅ Forward to real handler
-                 (clean, validated request)
+      |
+      v
+ L-1  Allowlist? ---- YES --> Forward to handler (skip all checks)
+      | NO
+      v
+ L0   Pre-flight score check ---- score >= threshold? ---- YES --> HONEYPOT (200 OK, fake data)
+      | NO
+      v
+ Pre-body analyzers: L1 Timing, L2 Velocity, L3 UA, L4 Headers
+      | score >= threshold?
+      |-- YES --> HONEYPOT
+      | NO
+      v
+ Body parsing + Post-body analyzers: L5 Obfuscation, L6 Schema
+      | score >= threshold?
+      |-- YES --> HONEYPOT
+      | NO
+      v
+ Forward clean request to real handler
 ```
 
 ---
 
-## ✨ Features at a Glance
+## Requirements
 
-| Feature | What It Does |
-|---------|-------------|
-| 🫥 **Silent Honeypot** | `200 OK` with fake data — zero signal to the attacker |
-| 🧠 **Stateful Threat Scoring** | Redis-backed cumulative scores persist across requests |
-| ⚡ **6 Defense Layers** | Timing, velocity, UA, obfuscation, schema, headers |
-| 🚀 **Edge-Ready** | Works on Vercel Edge Runtime, Node.js — zero `Buffer` usage |
-| 🔒 **Zero-Trust Validation** | Recursive `.strict()` on every nested Zod type |
-| 🤖 **AI Agent Detection** | 40+ patterns: OpenAI, Anthropic, LangChain, Playwright, 2026 agents |
-| 📪 **No Data Leakage** | Error messages intentionally vague — no schema details exposed |
-| 🛡️ **IP Allowlist** | Exact match + CIDR prefix for trusted IPs |
-| ⚙️ **Config Presets** | `strict`, `moderate`, `relaxed` — one-liner tuning |
-| 🧩 **Plugin System** | Custom AnalyzerPlugin for any detection logic (v1.5) |
-| 🔔 **Event Hooks** | Monitor violations, passes, honeypot events (v1.5) |
-| 📊 **Stats Tracking** | In-memory counters via `StatsTracker` interface (v1.6) |
-| 🤖 **ML Engine** | Python sidecar for prompt injection & deep content scoring (v1.6) |
-| 🐳 **Docker Support** | One-command `docker compose up` with Redis + ML engine |
+- Node.js >= 18
+- Next.js >= 14 (peer dependency)
+- Zod >= 3.22 (peer dependency)
+- Redis client (Upstash, ioredis, or compatible)
 
 ---
 
-## 🚀 Quick Start
+## Tutorial
+
+This tutorial walks through protecting a Next.js App Router endpoint from scratch.
+
+### 1. Create or open a Next.js project
 
 ```bash
-npm install hippocrates-middleware zod @upstash/redis
+npx create-next-app@latest my-app --typescript
+cd my-app
 ```
 
-**60 seconds to protection.** Wrap any App Route handler:
+### 2. Install dependencies
+
+```bash
+npm install hippocrates-middleware zod
+npm install @upstash/redis   # or your Redis client of choice
+```
+
+### 3. Set up a route
+
+Create `app/api/users/route.ts`:
 
 ```typescript
-// app/api/data/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 import { withHippocrates, z } from "hippocrates-middleware";
@@ -180,220 +100,339 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// ⚠️  .strict() is MANDATORY — extra fields trigger instant honeypot
-const Schema = z.object({
-  userId: z.string().uuid(),
-  action: z.enum(["read", "write"]),
+// Schemas must use .strict() -- extra fields trigger a violation
+const CreateUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
 }).strict();
 
 async function handler(req: NextRequest): Promise<NextResponse> {
   const body = await req.json();
-  return NextResponse.json({ success: true, data: body });
+  // body is already validated by the middleware
+  return NextResponse.json({ id: crypto.randomUUID(), ...body });
 }
 
-// 🩺 That's it. One wrapper. Full protection.
-export const POST = withHippocrates(handler, Schema, redis);
+export const POST = withHippocrates(handler, CreateUserSchema, redis);
 ```
 
-<details>
-<summary><strong>🔧 With Custom Configuration →</strong></summary>
+### 4. Add environment variables
+
+Create `.env.local`:
+
+```
+UPSTASH_REDIS_REST_URL=https://your-redis-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+```
+
+### 5. Run
+
+```bash
+npm run dev
+```
+
+Send a valid request:
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com"}'
+# Response: 200 OK with { id, name, email }
+```
+
+The middleware validates the body against the Zod schema. If the body is valid, it passes through to `handler`.
+
+### 6. Trigger the honeypot
+
+Send a request with extra fields:
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "role": "admin"}'
+```
+
+The `.strict()` schema rejects unknown fields. The request is routed to the decoy generator and you receive a 200 OK with fake data.
+
+Send too many requests from the same IP quickly, or use a tool with a suspicious User-Agent:
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -H "User-Agent: python-requests/2.31.0" \
+  -d '{"name": "Bob", "email": "bob@example.com"}'
+```
+
+The UA pattern `python-requests` triggers L3. Repeat this 10+ times within 10 seconds and L2 velocity tracking adds more points. Cross the threshold and you get the honeypot.
+
+### 7. With custom configuration
 
 ```typescript
-export const POST = withHippocrates(handler, Schema, redis, {
-  // ── Preset: one-liner tuning ──
-  preset: "strict", // "moderate" | "relaxed" — overrides all below
-
-  // ── Or manual overrides ──
-  threatScoreThreshold: 50,           // Default: 65 (lower = stricter)
-  velocityMaxRequests: 10,            // Default: 15 req/window
-  velocityWindowMs: 5_000,            // Default: 10s window
-  debugMode: process.env.NODE_ENV === "development",
-
-  decoyGenerator: (req) => ({
-    success: true,
-    data: {
-      id: crypto.randomUUID(),
-      status: "active",
-      timestamp: new Date().toISOString(),
-    },
-  }),
-
-  scoring: {
-    velocityViolation: 60,            // Per-endpoint scoring override
-    suspiciousUserAgent: 30,
-  },
-
-  // ── v1.6 features ──
+export const POST = withHippocrates(handler, CreateUserSchema, redis, {
+  preset: "strict",
   allowlist: { ips: ["10.0.0.0/8", "127.0.0.1"] },
-  bodyLimit: { maxBytes: 524_288, enabled: true },
+  bodyLimit: { maxBytes: 524288, enabled: true },
+  scoring: {
+    impossibleTiming: 35,
+    suspiciousUserAgent: 25,
+  },
+  hooks: {
+    onHoneypot: (event) => {
+      console.log(`Honeypot served to ${event.ip}`);
+    },
+  },
 });
 ```
 
-</details>
+---
+
+## Codebase Structure
+
+```
+src/
+  index.ts                     # Entry point -- withHippocrates() HOF, re-exports
+  engine/
+    types.ts                   # Type definitions (RedisClient, HippocratesConfig, etc.)
+    constants.ts               # Default values, UA patterns, obfuscation patterns
+    analyzers.ts               # Built-in analyzer plugin placeholders (L1-L6)
+    threat-score-engine.ts     # Redis-backed scoring engine with circuit breaker
+  system/
+    pipeline.ts                # Request processing pipeline
+    honeypot.ts                # Decoy response generator
+    validator.ts               # Zod validation helpers (validatePayload, ensureStrict)
+  plugins/
+    ml-engine.ts               # Python sidecar AnalyzerPlugin
+  utils/
+    ip.ts                      # IPv6 normalization and client IP resolution
+  __tests__/
+    helpers.ts                 # Test mocks
+    ip.test.ts                 # 30 tests
+    threat-score-engine.test.ts # 45 tests
+    validate-payload.test.ts   # 8 tests
+    decoy.test.ts              # 11 tests
+    with-hippocrates.test.ts   # 51 tests (integration)
+    ensure-strict.test.ts      # 25 tests
+    redis-degradation.test.ts  # 6 tests
+    stats.test.ts              # 5 tests
+    stats-integration.test.ts  # 13 tests
+    ml-engine-integration.test.ts # 15 tests
+engine-python/
+  app/
+    main.py                    # FastAPI application
+    config.py                  # Environment-based settings
+    models.py                  # Request/response models
+    analyzers/                 # ML detection modules
+      prompt_injection.py
+      obfuscation_advanced.py
+      content_risk.py
+  tests/
+    test_analyzers.py          # 31 tests
+    test_api.py                # 8 tests
+  Dockerfile
+  requirements.txt
+example/
+  app/api/data/route.ts        # Reference implementation
+```
 
 ---
 
-## ⚔️ The 6 Defense Layers
+## Pairing the Repo
 
-| # | Layer | Signal | Points | What Gets Flagged |
-|:--|:------|:-------|:------:|:------------------|
-| **L0** | Pre-flight Check | Existing Redis score | Instant | Repeat offenders from previous requests |
-| **L1** | Timing Analysis | Interval < 50ms | **+25** | Machine-speed execution |
-| **L2** | Velocity Tracking | Burst > 15 req / 10s | **+40** | Sliding window via Redis list |
-| **L3** | UA Fingerprinting | Suspicious / missing UA | **+15** | 35+ patterns: LLM SDKs, HTTP libs |
-| **L4** | Obfuscation Detection | Base64/Hex/Unicode | **+100** 🔥 | Instant max score |
-| **L5** | Schema Validation | Zod `.strict()` violation | **+100** 🔥 | Any extra field or type mismatch |
-| **L6** | Header Anomalies | Missing/wildcard headers | **+15** | Non-browser HTTP clients |
+```bash
+git clone https://github.com/achmdfzn/hippocrates.git
+cd hippocrates
 
-> **L4 and L5 are nuclear options.** Any obfuscation or schema violation immediately pushes the threat score to 100 — no incremental tolerance.
+npm install
+npm run build
+npm test                       # 209 tests
+npm run typecheck              # tsc --noEmit, zero errors
+npm run lint                   # ESLint, zero errors
+```
 
-### UA Detection Coverage
+To run the full stack with the Python ML engine:
 
-| Category | Patterns |
-|:---------|:---------|
-| 🤖 **LLM SDKs** | `anthropic-sdk`, `openai-node`, `google-gemini`, `langchain`, `llamaindex`, `autogen`, `crewai`, `smolagents`, `cohere`, `mistral`, `together`, `groq`, `deepseek`, `dspy`, `huggingface` |
-| 🌐 **HTTP Libs** | `python-requests`, `aiohttp`, `httpx`, `axios`, `node-fetch`, `got`, `curl`, `wget` |
-| 🕵️ **Browser Automation** | `playwright`, `puppeteer`, `selenium`, `cypress`, `headlesschrome` |
-| 🆕 **2026 AI Agents** | `claudebot`, `cursor`, `perplexitybot`, `githubcopilot`, `opencode`, `windsurf` |
+```bash
+# Requires: Docker, Python 3.12+
+docker compose up -d           # Redis + ML engine
+npm test                       # TS tests (209)
+cd engine-python && pytest -v  # Python tests (39)
+```
 
-### Obfuscation Detection
+Development workflow:
 
-| Pattern | Example | Threshold |
-|:--------|:--------|:----------|
-| **Base64** | `dXNlci1pZDogMTIz...` | ≥ 24 chars |
-| **Hex encoding** | `0x48656c6c6f576f726c64` | ≥ 16 hex chars |
-| **URL encoding** | `%68%65%6c%6c%6f` | 5+ consecutive |
-| **Unicode escapes** | `\u0068\u0065\u006c` | Any occurrence |
-| **HTML entities** | `&#104;&#101;&#108;` | Any occurrence |
+```bash
+npm run dev                    # tsup --watch (recompiles on source changes)
+npm run test:watch             # Vitest watch (reruns tests on changes)
+```
 
----
+CI pipeline (GitHub Actions):
 
-## 📊 Comparison: Hippocrates vs. The World
-
-| Feature | 🩺 **Hippocrates** | Rate Limiting | WAF | express-rate-limit |
-|:--------|:------------------:|:-------------:|:---:|:------------------:|
-| **Attacker sees** | `200 OK` (fake) | `429` | `403` | `429` |
-| **Attacker knows?** | **Never** | Yes | Yes | Yes |
-| **Stateful?** | ✅ Redis-backed | ❌ Usually | ❌ Per-request | ❌ Per-window |
-| **AI agent detection** | ✅ 35+ patterns | ❌ | ❌ | ❌ |
-| **Obfuscation scan** | ✅ Recursive | ❌ | ⚠️ Partial | ❌ |
-| **Zero-Trust schema** | ✅ Recursive `.strict()` | ❌ | ❌ | ❌ |
-| **Edge Runtime** | ✅ No `Buffer` | ✅ | ❌ | ❌ |
-| **IP allowlist** | ✅ Exact + CIDR | ❌ | ✅ | ❌ |
-| **Config presets** | ✅ 3 presets | ❌ | ❌ | ❌ |
-| **Install size** | **~33KB** | varies | N/A | ~15KB |
+```
+quality (Node 18/20/22): lint -> typecheck -> test -> build
+docker:                        build ML engine image -> healthcheck
+```
 
 ---
 
-## 🔧 API Reference
+## Defense Layers
 
-### `withHippocrates(handler, schema, redis, config?)`
+| Layer | Check | Points | Condition |
+|-------|-------|--------|-----------|
+| L-1 | IP allowlist | 0 (bypass all) | IP is in allowlist config |
+| L0 | Pre-flight score | Instant honeypot | Existing Redis score >= threshold |
+| L1 | Request timing | +25 | Interval < 50ms |
+| L2 | Request velocity | +40 | Burst > 15 req / 10s window |
+| L3 | User-Agent | +15 | Suspicious or missing UA |
+| L4 | HTTP headers | +15 | Missing or wildcard Accept, etc. |
+| L5 | Payload obfuscation | +100 | Base64, hex, URL encoding, Unicode |
+| L6 | Zod schema | +100 | .strict() violation |
 
-| Param | Type | Required | Default | Description |
-|:------|:-----|:--------:|:--------|:------------|
-| `handler` | `(req) => Promise<NextResponse>` | ✅ | — | Your route handler |
-| `schema` | `ZodType<T>` | ✅ | — | Zod schema with `.strict()` |
-| `redis` | `RedisClient` | ✅ | — | Upstash / ioredis compatible client |
-| `config` | `HippocratesConfig` | ❌ | See below | Optional overrides |
+L5 and L6 push the score to 100 immediately on detection.
 
-### Config Options
+UA patterns (40+): LLM SDKs (anthropic-sdk, openai-node, langchain), HTTP libs (python-requests, curl, axios), browser automation (playwright, puppeteer), 2026 AI agents (claude, cursor, perplexitybot, opencode).
 
-| Option | Type | Default | Description |
-|:-------|:-----|:--------|:------------|
-| `preset` | `"strict" | "moderate" | "relaxed"` | — | One-liner tuning (overrides all below) |
-| `threatScoreThreshold` | `number` | `65` | Score (0–100) that triggers honeypot |
-| `velocityWindowMs` | `number` | `10_000` | Sliding window for velocity tracking |
-| `velocityMaxRequests` | `number` | `15` | Max requests per window |
-| `threatTtlSeconds` | `number` | `3_600` | Redis TTL for threat keys |
-| `scoring` | `Partial<ThreatScoringWeights>` | `DEFAULT_WEIGHTS` | Per-layer weight overrides |
-| `decoyGenerator` | `(req) => object` | Built-in | Custom decoy response |
-| `debugMode` | `boolean` | `false` | Verbose security logging |
-| `plugins` | `AnalyzerPlugin[]` | — | Custom detection analyzers (v1.5) |
-| `hooks` | `HippocratesHooks` | — | Event hooks for violation/pass/honeypot (v1.5) |
-| `allowlist` | `{ ips: string[] }` | — | Exact + CIDR IP bypass (v1.6) |
-| `bodyLimit` | `{ maxBytes, enabled }` | `{ 1MB, enabled: true }` | Payload size enforcement (v1.6) |
-| `methodThresholds` | `Partial<Record<string, number>>` | — | Per-HTTP-method threshold overrides (v1.6) |
-| `violationMessages` | `object` | — | Custom honeypot messages per violation type (v1.6) |
-| `statsTracker` | `StatsTracker` | — | Consumer-provided stats interface for real-time metrics (v1.6) |
+Obfuscation patterns: Base64 (>=24 chars), hex encoding (>=16 chars), URL encoding (5+ consecutive), Unicode escapes, HTML entities.
 
-### Redis Key Layout
+---
+
+## Configuration
+
+```typescript
+interface HippocratesConfig {
+  preset?: "strict" | "moderate" | "relaxed";
+  threatScoreThreshold?: number;          // Default: 65
+  velocityWindowMs?: number;              // Default: 10000
+  velocityMaxRequests?: number;           // Default: 15
+  threatTtlSeconds?: number;              // Default: 3600
+  scoring?: Partial<ThreatScoringWeights>;
+  decoyGenerator?: (req: NextRequest) => Record<string, unknown>;
+  debugMode?: boolean;                    // Default: false
+  plugins?: AnalyzerPlugin[];
+  hooks?: HippocratesHooks;
+  allowlist?: { ips: string[] };
+  bodyLimit?: { maxBytes: number; enabled: boolean };
+  methodThresholds?: Partial<Record<string, number>>;
+  violationMessages?: Record<string, (violation: string) => Record<string, unknown>>;
+  statsTracker?: StatsTracker;
+}
+```
+
+Preset values:
+
+| Preset | Threshold | Velocity Max | Window |
+|--------|-----------|-------------|--------|
+| strict | 40 | 10 req | 10s |
+| moderate | 65 | 15 req | 10s |
+| relaxed | 80 | 30 req | 30s |
+
+Redis key layout:
 
 | Key | Purpose | TTL |
-|:----|:--------|:---:|
-| `hc:s:{ip}` | Cumulative threat score (0–100) | `threatTtlSeconds` |
-| `hc:t:{ip}` | Request timestamp list (velocity) | `windowMs + 10s` |
+|-----|---------|-----|
+| `hc:s:{ip}` | Threat score (0-100) | `threatTtlSeconds` |
+| `hc:t:{ip}` | Request timestamps (velocity) | `windowMs + 10s` |
 | `hc:l:{ip}` | Last-seen timestamp (timing) | 300s |
 
----
+Custom violation messages:
 
-## 🕳️ Anatomy of a Honeypot
+```typescript
+export const POST = withHippocrates(handler, schema, redis, {
+  violationMessages: {
+    obfuscation: (violation) => ({
+      error: "invalid_payload_format",
+      code: "OBFUSCATION_DETECTED",
+    }),
+    schema: (violation) => ({
+      error: "validation_failed",
+    }),
+  },
+});
+```
 
-The honeypot is the heart of Hippocrates. When an attacker triggers a detection, they receive a convincing `200 OK` — with deceptive data designed to waste their resources.
-
-> **Key insight:** The honeypot generates **4 rotating response templates** with randomized fake data. Each request looks legitimate but leads nowhere. The attacker burns money processing synthetic data they can't distinguish from real API responses.
-
-| Template | Shape | Looks Like |
-|:---------|:------|:-----------|
-| **A — Generic Data** | `{ success, requestId, data, metadata }` | Standard REST endpoint |
-| **B — Auth Token** | `{ accessToken, tokenType, expiresIn, scope }` | OAuth token exchange |
-| **C — Paginated List** | `{ items[], pagination }` | List API with cursors |
-| **D — Analytics** | `{ dashboard, metrics[], summary }` | Metrics dashboard API |
-
-All templates include:
-- ✅ Realistic UUIDs, timestamps, and version strings
-- ✅ Plausible pagination (hasNext: true to keep them going)
-- ✅ Randomized processing latency headers
-- ❌ No `x-powered-by`, no `server` headers
-- ❌ No signal the request was intercepted
+The key is the violation type prefix (obfuscation, schema, ua, velocity, timing, header). The function receives the full violation tag string and returns an object that merges with the decoy response.
 
 ---
 
-## 🧩 Analyzer Plugin System
+## Plugin System
 
-Extend Hippocrates with custom detection logic using the `AnalyzerPlugin` interface. Plugins run in two phases:
-
-| Phase | When It Runs | Built-in Analyzers |
-|:------|:-------------|:-------------------|
-| **pre-body** | Before request body is parsed | L1 Timing, L2 Velocity, L3 UA, L6 Headers |
-| **post-body** | After body is parsed (has access to `context.bodyRaw`) | L4 Obfuscation, L5 Schema |
+Implement custom detection logic with the AnalyzerPlugin interface:
 
 ```typescript
 import { type AnalyzerPlugin } from "hippocrates-middleware";
 
-const myAnalyzer: AnalyzerPlugin = {
-  name: "custom_check",
-  phase: "pre-body",
-  priority: 50,  // Lower = runs first (default: 100)
+const geoBlock: AnalyzerPlugin = {
+  name: "geo_block",
+  phase: "pre-body",      // "pre-body" | "post-body"
+  priority: 50,           // Lower runs first. Default: 100
   analyze(req, ctx) {
-    if (req.headers.get("x-custom") === "bad") {
-      return { score: 30, tags: ["custom:bad"] };
+    const country = req.headers.get("x-country");
+    if (country === "blocked") {
+      return { score: 50, tags: ["geo:blocked"] };
     }
     return { score: 0, tags: [] };
   },
 };
 
 export const POST = withHippocrates(handler, schema, redis, {
-  plugins: [myAnalyzer],
+  plugins: [geoBlock],
 });
+```
+
+Plugins sorted by priority ascending within each phase. Same priority preserves registration order.
+
+Additional use-case examples:
+
+**Rate-limit mimic — add score on high request frequency without blocking:**
+
+```typescript
+const rateMimic: AnalyzerPlugin = {
+  name: "rate_mimic",
+  phase: "pre-body",
+  priority: 90,
+  analyze(req, ctx) {
+    const freq = parseInt(req.headers.get("x-request-frequency") ?? "0");
+    if (freq > 100) return { score: 30, tags: ["rate:high"] };
+    if (freq > 50)  return { score: 15, tags: ["rate:medium"] };
+    return { score: 0, tags: [] };
+  },
+};
+```
+
+**Known scraper detection — match URL patterns for specific routes:**
+
+```typescript
+const scraperDetect: AnalyzerPlugin = {
+  name: "scraper_detect",
+  phase: "pre-body",
+  priority: 40,
+  analyze(req, ctx) {
+    const url = req.nextUrl.pathname;
+    const sensitivePaths = ["/api/users", "/api/orders", "/api/admin"];
+    if (sensitivePaths.some((p) => url.startsWith(p))) {
+      const ua = req.headers.get("user-agent") ?? "";
+      if (ua.includes("python-requests") || ua.includes("axios")) {
+        return { score: 25, tags: ["scraper:sensitive"] };
+      }
+    }
+    return { score: 0, tags: [] };
+  },
+};
 ```
 
 ---
 
-## 🔔 Event Hooks
-
-Monitor security events in real-time with `onViolation`, `onPass`, and `onHoneypot` callbacks:
+## Event Hooks
 
 ```typescript
 export const POST = withHippocrates(handler, schema, redis, {
   hooks: {
     onViolation: (event) => {
-      console.log(`Violation: ${event.ip} — ${event.violations}`);
+      console.log(`${event.ip} - ${event.violations}`);
     },
     onPass: (event) => {
       metrics.recordPass(event.ip, event.score);
     },
     onHoneypot: (event) => {
-      alertService.notify(`Honeypot served: ${event.ip}`);
+      alertService.notify(`Honeypot served to ${event.ip}`);
     },
   },
 });
@@ -401,9 +440,9 @@ export const POST = withHippocrates(handler, schema, redis, {
 
 ---
 
-## 📊 Stats Tracking
+## Stats Tracking
 
-Hippocrates maintains built-in in-memory counters for all security events. Access them via `ThreatScoreEngine.getStats()` or provide a custom `StatsTracker`:
+In-memory counters accessible via `ThreatScoreEngine.getStats()`. Pass a custom `StatsTracker` for external persistence:
 
 ```typescript
 import { type StatsTracker } from "hippocrates-middleware";
@@ -417,209 +456,90 @@ const tracker: StatsTracker = {
   },
   reset() {},
 };
-
-export const POST = withHippocrates(handler, schema, redis, {
-  statsTracker: tracker,
-});
 ```
+
+Warning: In serverless environments (Vercel Edge, AWS Lambda), each cold start creates a fresh `ThreatScoreEngine` instance -- stats reset on every invocation. Use a custom `StatsTracker` that persists to an external store for production monitoring.
 
 Available counters: `totalRequests`, `blockedByPreflight`, `blockedByTiming`, `blockedByVelocity`, `blockedByObfuscation`, `blockedBySchema`, `passedToHandler`, `honeypotServed`, `redisErrors`.
 
+Redis-backed StatsTracker example:
+
+```typescript
+import { type StatsTracker } from "hippocrates-middleware";
+import { Redis } from "@upstash/redis";
+
+function createRedisStatsTracker(redis: Redis): StatsTracker {
+  const key = "hc:stats";
+
+  return {
+    increment(counter) {
+      redis.hincrby(key, counter, 1).catch(() => {});
+    },
+    async getStats() {
+      const data = await redis.hgetall<Record<string, string>>(key);
+      if (!data) {
+        return {
+          totalRequests: 0, blockedByPreflight: 0, blockedByTiming: 0,
+          blockedByVelocity: 0, blockedByObfuscation: 0, blockedBySchema: 0,
+          passedToHandler: 0, honeypotServed: 0, redisErrors: 0,
+        };
+      }
+      return Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, Number(v)]),
+      ) as SecurityStats;
+    },
+    reset() {
+      redis.del(key).catch(() => {});
+    },
+  };
+}
+```
+
+Pass it to `withHippocrates` to persist stats across cold starts:
+
+```typescript
+export const POST = withHippocrates(handler, schema, redis, {
+  statsTracker: createRedisStatsTracker(redis),
+});
+```
+
 ---
 
-## 🤖 ML Engine Integration
+## ML Engine (Python Sidecar)
 
-Hippocrates ships with an optional **Python sidecar** for ML-based threat detection (prompt injection, advanced obfuscation, content risk scoring).
-
-### Architecture
-
-```
-┌──────────────┐     ┌──────────────┐     ┌───────────┐
-│  Hippocrates │────►│  ML Engine   │────►│   Redis   │
-│  (Next.js)   │     │  (FastAPI)   │     │ (Upstash) │
-└──────────────┘     └──────────────┘     └───────────┘
-       │                    │
-       │  POST /analyze     │
-       │  { body_raw, ... } │
-       └────────────────────┘
-```
-
-### Quick Start
+Optional ML-based detection: prompt injection, advanced obfuscation, content risk scoring (SQLi, XSS, path traversal, command injection). Runs in a Python FastAPI sidecar.
 
 ```bash
-# Start both Redis and ML engine
 docker compose up -d
-
-# ML engine is now available at http://localhost:8000
 ```
-
-### Register the plugin in your handler:
 
 ```typescript
 import { mlEnginePlugin } from "hippocrates-middleware";
 
 export const POST = withHippocrates(handler, schema, redis, {
   plugins: [mlEnginePlugin({
-    baseUrl: "http://ml-engine:8000", // Docker service name
+    baseUrl: "http://ml-engine:8000",
     timeoutMs: 3000,
     minScoreThreshold: 10,
   })],
 });
 ```
 
-### How It Works
+If the ML engine is unreachable, it returns score 0 with a `ml-engine-unreachable` tag. The plugin has its own circuit breaker: 3 consecutive failures trip a 30s cooldown.
 
-1. After body parsing (post-body phase), the pipeline sends the raw request body to the ML engine
-2. The ML engine runs prompt injection detection, obfuscation scoring, and content risk analysis
-3. Results contribute to the cumulative threat score
-4. If the ML engine is unreachable, it degrades gracefully (score = 0, no crash)
-
-### Configuration
+ML engine config options:
 
 | Option | Default | Description |
-|:-------|:--------|:------------|
+|--------|---------|-------------|
 | `baseUrl` | `http://localhost:8000` | ML engine endpoint |
-| `timeoutMs` | `3000` | Request timeout before fallback |
-| `minScoreThreshold` | `10` | Minimum ML score to contribute to threat score |
+| `timeoutMs` | `3000` | Request timeout |
+| `minScoreThreshold` | `10` | Minimum ML score to contribute |
+| `maxRetries` | `1` | Retries before degrading |
+| `circuitBreakerCooldownMs` | `30000` | Cooldown after max failures |
+| `maxConsecutiveFailures` | `3` | Failures before circuit trips |
 
 ---
 
-## 🐳 Docker Deployment
+## License
 
-Run the full Hippocrates stack with a single command:
-
-```yaml
-# docker-compose.yml (included in the package)
-services:
-  hippocrates-ml-engine:
-    build: ./engine-python
-    ports:
-      - "8000:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      retries: 5
-```
-
-```bash
-# Start services
-docker compose up -d
-
-# Run smoke test
-powershell -File engine-python/smoke-test.ps1
-```
-
-The ML engine runs on `python:3.12-slim` with FastAPI + httpx. The Docker build is verified in CI via GitHub Actions.
-
----
-
-## 🌟 Use Cases
-
-| Scenario | Why Hippocrates |
-|:---------|:----------------|
-| 🏢 **SaaS APIs** | Protect B2B/B2C endpoints from LLM scraping agents |
-| 🤖 **AI Startups** | Prevent competitors from extracting training data |
-| 🛒 **E-commerce** | Block automated pricing bots and inventory scrapers |
-| 👥 **Social Platforms** | Shadow-ban bot networks probing user data |
-| 🏦 **Financial Services** | Halt credential stuffing and enumeration attacks |
-
----
-
-## 🧪 Testing
-
-```bash
-npm test                 # 177 tests across 10 files — all pass
-npm run typecheck        # tsc --noEmit — zero errors
-npm run lint             # ESLint flat config — zero errors
-npm run build            # tsup → CJS + ESM + .d.ts
-```
-
----
-
-## 🤝 Contributing
-
-| Area | How to Help |
-|:-----|:------------|
-| 🐛 **Bug reports** | Open an issue with reproduction steps |
-| 🤖 **New UA patterns** | [Add it](SKILL.md#adding-a-new-user-agent-pattern-most-common-task) — especially 2026+ agents |
-| 🔍 **New obfuscation patterns** | See [SKILL.md](SKILL.md#new-obfuscation-pattern) |
-| ⚡ **New detection layers** | Architecture guidance in [CLAUDE.md](CLAUDE.md#how-to-extend-the-library) |
-| 📖 **Documentation** | Better docs = better adoption |
-
-### Development
-
-```bash
-npm run dev              # tsup --watch
-npm run build            # Production build
-npm run test:watch       # TDD mode
-```
-
----
-
-## 🛠️ Built With
-
-<p align="center">
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"/></a>
-  <a href="https://redis.io/"><img src="https://img.shields.io/badge/Redis-FF4438?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"/></a>
-  <a href="https://zod.dev/"><img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod"/></a>
-  <a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest"/></a>
-  <a href="https://tsup.egoist.dev/"><img src="https://img.shields.io/badge/tsup-000000?style=for-the-badge&logo=tsup&logoColor=white" alt="tsup"/></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
-</p>
-
----
-
-## 📈 Star History
-
-<p align="center">
-  <a href="https://star-history.com/#achmdfzn/hippocrates&Timeline">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=achmdfzn/hippocrates&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=achmdfzn/hippocrates&type=Date" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=achmdfzn/hippocrates&type=Date" width="600" />
-    </picture>
-  </a>
-  <br/>
-  <sub>⭐ Star the repo to show support and help others discover Hippocrates!</sub>
-</p>
-
----
-
-## ☕ Support
-
-If Hippocrates protects your API, consider supporting development:
-
-<p align="center">
-  <a href="https://github.com/sponsors/achmdfzn">
-    <img src="https://img.shields.io/badge/GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"/>
-  </a>
-  <a href="https://ko-fi.com/achmdfzn">
-    <img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"/>
-  </a>
-  <a href="https://www.buymeacoffee.com/achmdfzn">
-    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee"/>
-  </a>
-</p>
-
----
-
-## 📄 License
-
-<p align="center">
-  MIT © <a href="https://github.com/achmdfzn">achmdfzn</a>
-  <br/><br/>
-  <strong>First, do no harm — to your API.</strong>
-  <br/>
-  <sub>Built for the era where your API consumers might not be human.</sub>
-</p>
+MIT (c) achmdfzn
