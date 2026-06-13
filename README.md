@@ -18,11 +18,11 @@
 <br/>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/hippocrates">
-    <img src="https://img.shields.io/npm/v/hippocrates?style=flat-square&logo=npm&color=%23CB3837" alt="npm version"/>
+  <a href="https://www.npmjs.com/package/hippocrates-middleware">
+    <img src="https://img.shields.io/npm/v/hippocrates-middleware?style=flat-square&logo=npm&color=%23CB3837" alt="npm version"/>
   </a>
-  <a href="https://www.npmjs.com/package/hippocrates">
-    <img src="https://img.shields.io/npm/dm/hippocrates?style=flat-square&logo=npm&color=%23CB3837" alt="npm downloads"/>
+  <a href="https://www.npmjs.com/package/hippocrates-middleware">
+    <img src="https://img.shields.io/npm/dm/hippocrates-middleware?style=flat-square&logo=npm&color=%23CB3837" alt="npm downloads"/>
   </a>
   <a href="https://github.com/achmdfzn/hippocrates/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/achmdfzn/hippocrates?style=flat-square&color=%234FC921" alt="MIT License"/>
@@ -161,7 +161,7 @@ Incoming Request
 ## 🚀 Quick Start
 
 ```bash
-npm install hippocrates zod @upstash/redis
+npm install hippocrates-middleware zod @upstash/redis
 ```
 
 **60 seconds to protection.** Wrap any App Route handler:
@@ -170,7 +170,7 @@ npm install hippocrates zod @upstash/redis
 // app/api/data/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
-import { withHippocrates, z } from "hippocrates";
+import { withHippocrates, z } from "hippocrates-middleware";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -355,7 +355,7 @@ Extend Hippocrates with custom detection logic using the `AnalyzerPlugin` interf
 | **post-body** | After body is parsed (has access to `context.bodyRaw`) | L4 Obfuscation, L5 Schema |
 
 ```typescript
-import { type AnalyzerPlugin } from "hippocrates";
+import { type AnalyzerPlugin } from "hippocrates-middleware";
 
 const myAnalyzer: AnalyzerPlugin = {
   name: "custom_check",
@@ -403,7 +403,7 @@ export const POST = withHippocrates(handler, schema, redis, {
 Hippocrates maintains built-in in-memory counters for all security events. Access them via `ThreatScoreEngine.getStats()` or provide a custom `StatsTracker`:
 
 ```typescript
-import { type StatsTracker } from "hippocrates";
+import { type StatsTracker } from "hippocrates-middleware";
 
 const tracker: StatsTracker = {
   increment(counter) {
@@ -453,7 +453,7 @@ docker compose up -d
 ### Register the plugin in your handler:
 
 ```typescript
-import { mlEnginePlugin } from "hippocrates";
+import { mlEnginePlugin } from "hippocrates-middleware";
 
 export const POST = withHippocrates(handler, schema, redis, {
   plugins: [mlEnginePlugin({

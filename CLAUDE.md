@@ -7,7 +7,7 @@ Read this before touching any file in this repo.
 
 ## What This Project Is
 
-`hippocrates` is a Next.js App Router security middleware library published to NPM.
+`hippocrates-middleware` is a Next.js App Router security middleware library published to NPM.
 It exports one primary function — `withHippocrates` — that wraps any App Router
 route handler with a **Strict Stateful Defense Architecture**.
 

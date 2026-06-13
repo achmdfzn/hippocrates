@@ -9,7 +9,7 @@ metadata:
 
 # Hippocrates Skill
 
-**hippocrates** is an NPM library (`hippocrates`) that wraps any Next.js App Router route handler with a **Strict Stateful Defense Architecture**.
+**hippocrates** is an NPM library (`hippocrates-middleware`) that wraps any Next.js App Router route handler with a **Strict Stateful Defense Architecture**.
 
 The core loop: evaluate every incoming request against a cumulative Threat Score stored in Redis, and silently route high-score requests to a decoy generator instead of the real handler. The attacker always receives a `200 OK` — never a `403` or `429`.
 
@@ -64,7 +64,7 @@ All state lives in Redis under the `hc:` namespace. No in-memory state.
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
-import { withHippocrates, z } from "hippocrates";
+import { withHippocrates, z } from "hippocrates-middleware";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -152,7 +152,7 @@ export const POST = withHippocrates(handler, schema, redis, {
 Hippocrates ships with an optional Python sidecar for ML-based threat detection:
 
 ```typescript
-import { mlEnginePlugin } from "hippocrates";
+import { mlEnginePlugin } from "hippocrates-middleware";
 
 export const POST = withHippocrates(handler, schema, redis, {
   plugins: [mlEnginePlugin({
@@ -173,7 +173,7 @@ Start the sidecar: `docker compose up -d`
 ## Stats Tracker (v1.6)
 
 ```typescript
-import { type StatsTracker } from "hippocrates";
+import { type StatsTracker } from "hippocrates-middleware";
 
 const tracker: StatsTracker = {
   increment(counter) { /* forward to metrics */ },

@@ -5,7 +5,7 @@
 
 ## OVERVIEW
 
-Next.js App Router security middleware library (NPM: `hippocrates`). Wraps route handlers with Redis-backed cumulative threat scoring. Silently routes high-score requests to a decoy honeypot (200 OK with fake data) instead of the real handler.
+Next.js App Router security middleware library (NPM: `hippocrates-middleware`). Wraps route handlers with Redis-backed cumulative threat scoring. Silently routes high-score requests to a decoy honeypot (200 OK with fake data) instead of the real handler.
 
 ## STRUCTURE
 
