@@ -36,7 +36,7 @@
   <a href="https://github.com/achmdfzn/hippocrates/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/achmdfzn/hippocrates/ci.yml?style=flat-square&logo=github&label=CI" alt="CI"/>
   </a>
-  <a href="https://github.com/achmdfzn/hippocrates/tree/master/engine-python">
+  <a href="https://github.com/achmdfzn/hippocrates/tree/main/engine-python">
     <img src="https://img.shields.io/badge/Built%20with-Python-3776AB?style=flat-square&logo=python" alt="Built with Python"/>
   </a>
   <a href="https://coveralls.io/github/achmdfzn/hippocrates">
